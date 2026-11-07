@@ -4,7 +4,7 @@ Every discovered unit test has a stable case ID below. IDs refer to tests, not a
 
 ## Shared procedure
 
-Use the environment setup in [testing.md](testing.md). All 73 tests use temporary/fake state; none needs real credentials or provider requests. Run `python -m unittest discover -s tests -v` for the complete suite. To execute a row, use `python -m unittest discover -s tests -k '<full test identifier from the row>' -v`; expect exactly one test with `OK`. Prerequisites and cleanup are shared: Python 3.12+, installed project dependencies, local filesystem on Linux/macOS; temporary files are cleaned automatically. Expected exception assertions count as passing tests, not user-visible failures.
+Use the environment setup in [testing.md](testing.md). All 78 tests use temporary/fake state; none needs real credentials or provider requests. Run `python -m unittest discover -s tests -v` for the complete suite. To execute a row, use `python -m unittest discover -s tests -k '<full test identifier from the row>' -v`; expect exactly one test with `OK`. Prerequisites and cleanup are shared: Python 3.12+, installed project dependencies, local filesystem on Linux/macOS; temporary files are cleaned automatically. Expected exception assertions count as passing tests, not user-visible failures.
 
 ## CFG: test_scaffold.py
 
@@ -101,7 +101,7 @@ Source: [test_events.py](../tests/test_events.py). Run `python -m unittest disco
 
 ## DAV: test_caldav.py
 
-Source: [test_caldav.py](../tests/test_caldav.py). Run `python -m unittest discover -s tests -p 'test_caldav.py' -v`; expect 15 tests with `OK`. All fixtures are local/fake; no credentials or provider requests.
+Source: [test_caldav.py](../tests/test_caldav.py). Run `python -m unittest discover -s tests -p 'test_caldav.py' -v`; expect 20 tests with `OK`. All fixtures are local/fake; no credentials or provider requests.
 
 | Case ID | Executable test identifier | Setup / input | Expected result |
 | --- | --- | --- | --- |
@@ -120,6 +120,16 @@ Source: [test_caldav.py](../tests/test_caldav.py). Run `python -m unittest disco
 | DAV-013 | `test_caldav.CalDAVTests.test_invalid_calendar_data_or_missing_uid_is_rejected` | Invalid iCalendar, missing UID or duplicate UID property | Entire read rejected. |
 | DAV-014 | `test_caldav.CalDAVTests.test_empty_calendar_is_a_read_result_not_delete_instruction` | Empty valid multistatus | Empty resource list; no delete API. |
 | DAV-015 | `test_caldav.CalDAVTests.test_credentials_event_data_and_raw_exceptions_are_not_logged` | HTTP client logs/raises sentinel password and event data | Logs suppressed; exception contains no sentinel. |
+
+## DAV loopback HTTP test cases
+
+| Case ID | Executable test identifier | Setup / input | Expected result |
+| --- | --- | --- | --- |
+| DAV-016 | `test_caldav.CalDAVTests.test_http_loopback_is_rejected_without_explicit_opt_in` | HTTP localhost, IPv4/IPv6 loopback without flag | Reject before network with HTTPS-required code. |
+| DAV-017 | `test_caldav.CalDAVTests.test_explicit_http_loopback_reads_preserve_scheme_and_exact_origin` | Explicit HTTP flag and matching localhost/127.0.0.1/::1 origin | HTTP REPORT and resource href preserved; redirects still refused. |
+| DAV-018 | `test_caldav.CalDAVTests.test_http_opt_in_rejects_non_loopback_hosts_before_network` | HTTP remote/LAN, wildcard, lookalike, shorthand/mapped-IP hosts with flag | Loopback-only error before any request. |
+| DAV-019 | `test_caldav.CalDAVTests.test_http_opt_in_requires_boolean_and_matching_explicit_origin` | String/integer/None flag; default HTTPS or wrong-port origin | Strict boolean/origin errors; no request. |
+| DAV-020 | `test_caldav.CalDAVTests.test_http_loopback_still_rejects_resource_escapes_and_redirects` | Local HTTP report with foreign host/port/path/traversal href or 302 | Whole read rejected; no redirect or resource href followed. |
 
 ## Manual and environment cases
 

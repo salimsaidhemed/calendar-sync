@@ -17,7 +17,7 @@ python -m unittest discover -s tests -v
 python -m pip check
 ```
 
-Expected: 15 CalDAV tests (DAV-001–015), 13 normalization tests (NORM-001–013), 73 documented/discovered tests and 73 passing tests. No credentials, Nextcloud or Google requests are needed. [The catalogue](test-cases.md) lists each input/expected result. HTTP/XML/iCalendar fixtures are local test constants; Google conversion fixtures are local dictionaries.
+Expected: 20 CalDAV tests (DAV-001–020), 13 normalization tests (NORM-001–013), 78 documented/discovered tests and 78 passing tests. No credentials, Nextcloud or Google requests are needed. [The catalogue](test-cases.md) lists each input/expected result. HTTP/XML/iCalendar fixtures are local test constants; Google conversion fixtures are local dictionaries.
 
 ## Set up a dedicated Nextcloud test calendar
 
@@ -54,7 +54,9 @@ Sources: [Nextcloud calendar management](https://docs.nextcloud.com/server/stabl
 
 ## Read semantics and limits
 
-`CalDAVCalendar(calendar_url, username, password_file)` defaults to the trusted origin `https://nextcloud.tcadc.com`. A different deployment requires an explicit HTTPS `origin_url`; it is not inferred from server responses. Both the configured calendar and every reported resource must stay on that origin and within the exact collection. Resource hrefs must be direct children; relative/same-origin absolute percent-encoded hrefs are canonicalized. Credentials in URLs, queries/fragments, traversal, double encoding, encoded separators and foreign/nested resource references are rejected. Hrefs are validated, never fetched.
+The only HTTP exception is an explicit `allow_http_loopback=True` together with a matching HTTP `origin_url` for local testing. See NC-UAT-06 below. The accepted HTTP hosts are exactly `localhost`, standard loopback IPv4 literals, or `::1`; public/private LAN hosts, shorthand numeric addresses and lookalike names are rejected. Prefer literal 127.0.0.1/::1 to avoid hostname resolution. No redirects, foreign ports/origins or TLS-verification bypass are enabled by this option. HTTPS remains the default for every normal deployment.
+
+`CalDAVCalendar(calendar_url, username, password_file)` defaults to the trusted origin `https://nextcloud.tcadc.com`. A different deployment requires an explicit `origin_url`, HTTPS unless using the constrained local-test exception above; it is not inferred from server responses. Both the configured calendar and every reported resource must stay on that exact scheme/host/port and within the collection. Resource hrefs must be direct children; relative/same-origin absolute percent-encoded hrefs are canonicalized. Credentials in URLs, queries/fragments, traversal, double encoding, encoded separators and foreign/nested resource references are rejected. Hrefs are validated, never fetched.
 
 One authenticated `REPORT calendar-query` selects VEVENT resources at Depth 1 and requests calendar-data/ETag. TLS verification, 5/30-second connect/read timeouts and refused redirects are fixed; environment proxy/netrc settings are disabled. No browser flow or fallback discovery is attempted. Transport failures do not automatically retry in this version: rerun the complete read after resolving transient errors. The future worker can schedule bounded retries.
 
@@ -88,7 +90,7 @@ Protocol/library sources: [CalDAV RFC 4791](https://www.rfc-editor.org/rfc/rfc47
 
 ## Acceptance cases
 
-Use [the execution record](test-evidence.md). Record each subcase independently; fake tests are not live server acceptance. No real Nextcloud/Google access was performed by the author. Live NC-UAT-03–05 remain Not run until the reviewer executes them.
+Use [the execution record](test-evidence.md). Record each subcase independently; fake tests are not live server acceptance. No real Nextcloud/Google access was performed by the author. Live NC-UAT-03–06 remain Not run until the reviewer executes them.
 
 | ID | Scenario / prerequisites | Expected result | Automated mapping |
 | --- | --- | --- | --- |
@@ -97,6 +99,7 @@ Use [the execution record](test-evidence.md). Record each subcase independently;
 | NC-UAT-03 | Live disposable calendar with exactly three fixtures and app password | Three resources, two supported and one recurring skip; stable repeated read; unchanged UI | DAV-001, DAV-012; actual server compatibility manual |
 | NC-UAT-04 | Same test secret temporarily set to 0644, then restored to 0600 | Permission failure before request; success after restoration | DAV-005 |
 | NC-UAT-05 | Revoke only dedicated UAT app password after other cases | Fixed authentication failure, no raw secrets or browser redirect-following | DAV-006; live revocation manual |
+| NC-UAT-06 | Optional HTTP test server on localhost:8090, explicit matching origin and opt-in | Same stable read as NC-UAT-03; default HTTP and non-loopback HTTP still rejected | DAV-016–020; live localhost compatibility manual |
 
 ### NC-UAT-01: offline conversion smoke
 
@@ -171,11 +174,16 @@ from collections import Counter
 import os
 from calendar_sync.caldav import CalDAVCalendar, CalDAVError
 
-calendar = CalDAVCalendar(
-    os.environ['NEXTCLOUD_UAT_CALENDAR_URL'], os.environ['NEXTCLOUD_UAT_USERNAME'],
-    os.environ['NEXTCLOUD_UAT_PASSWORD_FILE'],
-)
+http_mode = os.environ.get('NEXTCLOUD_UAT_ALLOW_HTTP_LOOPBACK', 'false')
+if http_mode not in {'true', 'false'}:
+    raise SystemExit('NEXTCLOUD_UAT_ALLOW_HTTP_LOOPBACK must be true or false')
 try:
+    calendar = CalDAVCalendar(
+        os.environ['NEXTCLOUD_UAT_CALENDAR_URL'], os.environ['NEXTCLOUD_UAT_USERNAME'],
+        os.environ['NEXTCLOUD_UAT_PASSWORD_FILE'],
+        origin_url=os.environ.get('NEXTCLOUD_UAT_ORIGIN_URL', 'https://nextcloud.tcadc.com'),
+        allow_http_loopback=http_mode == 'true',
+    )
     first = calendar.list_resources()
     second = calendar.list_resources()
 except CalDAVError as error:
@@ -200,12 +208,29 @@ Stop other test clients, run `chmod 644 "$NEXTCLOUD_UAT_PASSWORD_FILE"`, then re
 
 After all other live cases, revoke the dedicated `Calendar Sync UAT` device/app password in Nextcloud's Security settings. Rerun NC-UAT-03: expect nonzero exit with `caldav_authentication_failed` (401). If the deployment redirects to browser SSO instead, it is rejected as `caldav_redirect_rejected`; record that compatibility issue rather than claiming successful CalDAV authentication. Never revoke a production grant for this case. A new test password is needed for further live tests.
 
+### NC-UAT-06: optional local HTTP testing
+
+Use this only with a disposable Nextcloud/test password running on your local machine. HTTP sends the app password without TLS; this opt-in is not for a LAN IP, remote hostname or production server. A local container's port must be published to your PC, for example localhost:8090. Ensure Nextcloud trusts the chosen local host and emits relative or same-origin CalDAV hrefs. `localhost` and `127.0.0.1` are different origins; do not mix them between the configured URL/origin and server-generated absolute hrefs. Nextcloud SSO redirects remain rejected.
+
+Keep the private test secret/login from setup. Replace USER_ID/CALENDAR_URI with the actual collection path, then run NC-UAT-03's complete updated script:
+
+```sh
+export NEXTCLOUD_UAT_ORIGIN_URL='http://localhost:8090'
+export NEXTCLOUD_UAT_CALENDAR_URL='http://localhost:8090/remote.php/dav/calendars/USER_ID/CALENDAR_URI/'
+export NEXTCLOUD_UAT_ALLOW_HTTP_LOOPBACK=true
+```
+
+The script passes `origin_url='http://localhost:8090'` and `allow_http_loopback=True` explicitly. Setting these UAT variables does not change the main CLI's production configuration. Expected result is NC-UAT-03's count 3 / supported 2 / recurrence skip 1 / stable-read PASS. Without the opt-in, expect `caldav_https_required`; with a different origin/port expect `caldav_calendar_outside_origin`; non-loopback HTTP remains `caldav_http_loopback_only`. No credential checks, XML limits or read-only safeguards are relaxed.
+
+After local testing, run `unset NEXTCLOUD_UAT_ORIGIN_URL NEXTCLOUD_UAT_ALLOW_HTTP_LOOPBACK` and restore `NEXTCLOUD_UAT_CALENDAR_URL` to the intended HTTPS test URL before another environment's tests. Do not change `NEXTCLOUD_URL` to HTTP: its default CLI settings still require HTTPS. For a remote server use HTTPS, or an appropriately configured local tunnel with matching loopback hrefs; the adapter does not grant a general insecure-HTTP override.
+
 ### Cleanup and safe errors
 
 Stop test clients, restore permissions, revoke only the dedicated test app password, remove only the disposable calendar/fixtures if no longer needed, and securely remove only its local test password file. Unset `NEXTCLOUD_UAT_USERNAME`, `NEXTCLOUD_UAT_CALENDAR_URL`, `NEXTCLOUD_UAT_PASSWORD_FILE`. Never remove production calendars, credentials or SQLite mappings during test cleanup.
 
 | Error | Next action |
 | --- | --- |
+| caldav_https_required / http_loopback_only / calendar_outside_origin | For local HTTP only, supply explicit matching loopback origin and opt-in; otherwise use HTTPS. Do not relax remote/production transport. |
 | caldav_secret_missing / secret_permissions / secret_format | Correct the exact private app-password file/path/permissions; do not paste its contents. |
 | caldav_authentication_failed | Verify login username and test app password; browser SSO credentials alone are insufficient. |
 | caldav_permission_denied / calendar_not_found | Check calendar event-detail sharing and actual CalDAV collection URL, including trailing slash/internal IDs. |

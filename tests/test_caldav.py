@@ -43,6 +43,57 @@ class CalDAVTests(unittest.TestCase):
         self.session = patcher.start().return_value.__enter__.return_value
         self.addCleanup(patcher.stop)
 
+    def test_http_loopback_is_rejected_without_explicit_opt_in(self):
+        for host in ('localhost', '127.0.0.1', '[::1]'):
+            origin = 'http://' + host + ':8090'
+            with self.assertRaisesRegex(CalDAVError, '^caldav_https_required$'):
+                CalDAVCalendar(origin + '/uat/', 'test', self.secret, origin_url=origin)
+        self.session.request.assert_not_called()
+
+    def test_explicit_http_loopback_reads_preserve_scheme_and_exact_origin(self):
+        for host in ('localhost', '127.0.0.1', '[::1]'):
+            origin = 'http://' + host + ':8090'
+            calendar = CalDAVCalendar(origin + '/uat/', 'test', self.secret,
+                                      origin_url=origin, allow_http_loopback=True)
+            self.session.request.side_effect = [response(multistatus(member(origin + '/uat/one.ics')))]
+            resource = calendar.list_resources()[0]
+            self.assertEqual(resource.href, origin + '/uat/one.ics')
+            self.assertEqual(self.session.request.call_args.args, ('REPORT', origin + '/uat/'))
+            self.assertFalse(self.session.request.call_args.kwargs['allow_redirects'])
+
+    def test_http_opt_in_rejects_non_loopback_hosts_before_network(self):
+        for host in ('nextcloud.tcadc.com', '192.168.1.10', '10.0.0.2', '0.0.0.0',
+                     'localhost.evil.invalid', '127.1', '2130706433', '[::ffff:127.0.0.1]'):
+            origin = 'http://' + host + ':8090'
+            with self.subTest(host=host), self.assertRaisesRegex(CalDAVError, '^caldav_http_loopback_only$'):
+                CalDAVCalendar(origin + '/uat/', 'test', self.secret,
+                               origin_url=origin, allow_http_loopback=True)
+        self.session.request.assert_not_called()
+
+    def test_http_opt_in_requires_boolean_and_matching_explicit_origin(self):
+        for value in ('true', 1, None):
+            with self.assertRaisesRegex(CalDAVError, '^caldav_invalid_configuration$'):
+                CalDAVCalendar(BASE, 'test', self.secret, allow_http_loopback=value)
+        with self.assertRaisesRegex(CalDAVError, '^caldav_calendar_outside_origin$'):
+            CalDAVCalendar('http://localhost:8090/uat/', 'test', self.secret, allow_http_loopback=True)
+        with self.assertRaisesRegex(CalDAVError, '^caldav_calendar_outside_origin$'):
+            CalDAVCalendar('http://localhost:8091/uat/', 'test', self.secret,
+                           origin_url='http://localhost:8090', allow_http_loopback=True)
+        self.session.request.assert_not_called()
+
+    def test_http_loopback_still_rejects_resource_escapes_and_redirects(self):
+        origin = 'http://localhost:8090'
+        calendar = CalDAVCalendar(origin + '/uat/', 'test', self.secret,
+                                  origin_url=origin, allow_http_loopback=True)
+        for href in ('http://localhost:8091/uat/one.ics', 'http://127.0.0.1:8090/uat/one.ics',
+                     'http://localhost:8090/other/one.ics', '../one.ics', 'http://evil.invalid/uat/one.ics'):
+            self.session.request.side_effect = [response(multistatus(member(href)))]
+            with self.assertRaises(CalDAVError):
+                calendar.list_resources()
+        self.session.request.side_effect = [response(b'', 302)]
+        with self.assertRaisesRegex(CalDAVError, '^caldav_redirect_rejected$'):
+            calendar.list_resources()
+
     def test_report_uses_explicit_calendar_verified_tls_and_no_writes(self):
         self.session.request.side_effect = [response(multistatus(member()))]
         result = self.calendar.list_resources()

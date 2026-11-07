@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from datetime import date, datetime
+import ipaddress
 import os
 import re
 import stat
@@ -36,7 +37,7 @@ class CalendarResource:
     skip_reason: str | None
 
 
-def _url(value):
+def _url(value, *, allow_http_loopback=False):
     if (not isinstance(value, str) or not value or '?' in value or '#' in value
             or any(ord(char) <= 32 or ord(char) >= 127 for char in value)):
         raise CalDAVError('caldav_invalid_url')
@@ -44,12 +45,25 @@ def _url(value):
     if parsed.username is not None or parsed.password is not None:
         raise CalDAVError('caldav_invalid_url')
     if parsed.scheme or parsed.netloc:
-        if parsed.scheme != 'https' or not parsed.hostname or not parsed.netloc:
+        if not parsed.hostname or not parsed.netloc or parsed.scheme not in {'http', 'https'}:
             raise CalDAVError('caldav_https_required')
-        port = parsed.port or 443
         host = parsed.hostname.lower()
+        if parsed.scheme == 'http':
+            if not allow_http_loopback:
+                raise CalDAVError('caldav_https_required')
+            try:
+                address = ipaddress.ip_address(host)
+                loopback = (address.version == 4 and address.is_loopback) or address == ipaddress.IPv6Address('::1')
+            except ValueError:
+                loopback = host == 'localhost'
+            if not loopback:
+                raise CalDAVError('caldav_http_loopback_only')
+        default_port = 80 if parsed.scheme == 'http' else 443
+        port = parsed.port if parsed.port is not None else default_port
+        if port == 0:
+            raise CalDAVError('caldav_invalid_url')
         authority = ('[' + host + ']') if ':' in host else host
-        if port != 443:
+        if port != default_port:
             authority += ':' + str(port)
     else:
         authority = ''
@@ -60,7 +74,7 @@ def _url(value):
                 or any(ord(char) < 32 or ord(char) == 127 for char in decoded)):
             raise CalDAVError('caldav_unsafe_path')
         segments.append(quote(decoded, safe="!$&'()+,;=@-._~"))
-    return urlunsplit(('https' if authority else '', authority, '/'.join(segments), '', ''))
+    return urlunsplit((parsed.scheme if authority else '', authority, '/'.join(segments), '', ''))
 
 
 def _password(path):
@@ -119,14 +133,18 @@ def _resource(href, etag, text):
 
 class CalDAVCalendar:
     def __init__(self, calendar_url, username, password_file, *,
-                 origin_url='https://nextcloud.tcadc.com', max_bytes=8388608, max_resources=10000):
+                 origin_url='https://nextcloud.tcadc.com', max_bytes=8388608, max_resources=10000,
+                 allow_http_loopback=False):
         try:
-            origin = _url(origin_url)
+            if type(allow_http_loopback) is not bool:
+                raise CalDAVError('caldav_invalid_configuration')
+            self.allow_http_loopback = allow_http_loopback
+            origin = _url(origin_url, allow_http_loopback=allow_http_loopback)
             parsed = urlsplit(origin)
             if not parsed.netloc or parsed.path not in {'', '/'}:
                 raise CalDAVError('caldav_invalid_origin')
             self.origin = urlunsplit((parsed.scheme, parsed.netloc, '', '', ''))
-            self.calendar_url = _url(calendar_url)
+            self.calendar_url = _url(calendar_url, allow_http_loopback=allow_http_loopback)
             target = urlsplit(self.calendar_url)
             if (not target.netloc or not target.path.endswith('/') or target.path == '/'
                     or self.origin != urlunsplit((target.scheme, target.netloc, '', '', ''))):
@@ -145,8 +163,8 @@ class CalDAVCalendar:
             raise CalDAVError('caldav_invalid_configuration') from None
 
     def _href(self, value):
-        safe = _url(value)
-        resolved = _url(urljoin(self.calendar_url, safe))
+        safe = _url(value, allow_http_loopback=self.allow_http_loopback)
+        resolved = _url(urljoin(self.calendar_url, safe), allow_http_loopback=self.allow_http_loopback)
         if not resolved.startswith(self.calendar_url):
             raise CalDAVError('caldav_resource_outside_calendar')
         remainder = resolved[len(self.calendar_url):]
