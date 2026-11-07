@@ -27,6 +27,8 @@ The current CLI only validates scaffold configuration; it does not sync events. 
 
 The owner manages main protection. Require pull requests and the `test` CI check, block direct pushes and force pushes, and require review where the account plan and reviewer identities allow it. GitHub does not permit authors to approve their own PRs: when the agent publishes using the owner's account, owner review is a manual gate followed by an owner merge, or needs a separate contributor identity for enforceable approval. Never bypass or weaken protection to complete work. Private-repository protection availability depends on the GitHub plan. Track verification in issue #8.
 
+On 2026-11-07, GitHub returned HTTP 403 for this private repository's protection API: upgrading to GitHub Pro or changing visibility is required for that feature. The repository remains private. The feature-branch and owner-merge policy applies, but server-side enforcement has not been verified and must not be claimed as active. Issue #8 tracks resolution.
+
 ## Documentation requirements
 
 Document configuration defaults, credential scopes, migrations, compatibility changes and operational recovery as they change. PR descriptions must explain behavior, tests and remaining limitations. Never put credentials or real calendar data in issues, logs, examples or fixtures.
