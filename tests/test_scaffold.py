@@ -24,11 +24,11 @@ class SafetyTests(unittest.TestCase):
     def test_live_mode_fails_closed(self):
         with patch.dict("os.environ", {"SYNC_DRY_RUN": "false"}, clear=True):
             with contextlib.redirect_stderr(io.StringIO()):
-                self.assertEqual(main(), 2)
+                self.assertEqual(main([]), 2)
 
     def test_scaffold_reports_no_sync(self):
         output = io.StringIO()
         with patch.dict("os.environ", {}, clear=True):
             with contextlib.redirect_stdout(output):
-                self.assertEqual(main(), 0)
+                self.assertEqual(main([]), 0)
         self.assertIn("sync not implemented", output.getvalue())

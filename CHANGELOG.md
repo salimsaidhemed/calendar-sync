@@ -4,6 +4,10 @@
 
 ### Added
 
+- Explicit local Google Desktop OAuth authorization with PKCE, loopback redirect and read-only event scope.
+- Locked, permission-restricted token files with atomic refresh persistence and sanitized failure codes.
+- Google Calendar adapter with complete pagination, bounded retries, duplicate/page-loop detection and fail-closed partial reads.
+- Credential-free OAuth/read tests and Google Workspace authorization/setup guide.
 - Configuration-scoped SQLite persistence with atomic versioned migrations, worker locking, unique event mappings and run history.
 - Append-only audit entries committed atomically with applied mappings; dry-run runs cannot create or advance applied mappings.
 - State recovery and integration guide with credential-file references and no stored credential contents.
