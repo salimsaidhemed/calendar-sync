@@ -2,6 +2,8 @@
 
 Implemented for issue #9. This adds Google authorization and a read-only adapter; it does not enable syncing or any Nextcloud writes. Default `calendar-sync` behavior remains credential-free and offline. Provider operations are not yet integrated into the SQLite worker.
 
+For reproducible unit tests and manual user acceptance scenarios, including expected results and cleanup, see [Google acceptance testing](google-acceptance.md).
+
 ## One-time authorization on your workstation
 
 1. In your Google Cloud project, enable the Calendar API and configure the OAuth consent screen for your organization. For Google Workspace, the administrator may need to approve the app and requested scope. Use an Internal audience if your organization/project is eligible; otherwise configure permitted test users and publishing status appropriately.

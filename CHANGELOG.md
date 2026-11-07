@@ -4,6 +4,7 @@
 
 ### Added
 
+- Feature-specific unit-test and user-acceptance instructions for Google OAuth/reads, plus mandatory testing sections in every PR's template and contribution rules.
 - Explicit local Google Desktop OAuth authorization with PKCE, loopback redirect and read-only event scope.
 - Locked, permission-restricted token files with atomic refresh persistence and sanitized failure codes.
 - Google Calendar adapter with complete pagination, bounded retries, duplicate/page-loop detection and fail-closed partial reads.
