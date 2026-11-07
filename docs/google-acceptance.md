@@ -13,7 +13,7 @@ python -m unittest discover -s tests -v
 python -m pip check
 ```
 
-Expected on this PR: 24 focused Google tests and 42 full-suite tests pass with `OK`; dependency checks report no broken requirements. Package installation needs access to the package registry. Tests themselves use fake authorization flows, tokens and HTTP responses; no Google account, browser or network is needed. They cover refresh/revocation, offline grants, scope/endpoint validation, permissions, token replacement/locking, complete pagination, retries, malformed/partial reads and diagnostic redaction. CI repeats the full suite on Python 3.12 and builds/smokes the Docker image.
+Expected on this PR: 27 focused Google tests and 45 full-suite tests pass with `OK`; dependency checks report no broken requirements. Package installation needs access to the package registry. Tests themselves use fake authorization flows, tokens and HTTP responses; no Google account, browser or network is needed. They cover refresh/revocation, offline grants, scope/endpoint validation, permissions, token replacement/locking, complete pagination, retries, malformed/partial reads and diagnostic redaction. CI repeats the full suite on Python 3.12 and builds/smokes the Docker image.
 
 ## UAT A: offline default and refusal of live sync
 

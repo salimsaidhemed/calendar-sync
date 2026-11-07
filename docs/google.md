@@ -1,5 +1,7 @@
 # Google Workspace authorization and reads
 
+For fixed calendar-access error codes and recovery steps, see [Google troubleshooting](google-troubleshooting.md).
+
 Implemented for issue #9. This adds Google authorization and a read-only adapter; it does not enable syncing or any Nextcloud writes. Default `calendar-sync` behavior remains credential-free and offline. Provider operations are not yet integrated into the SQLite worker.
 
 For reproducible unit tests and manual user acceptance scenarios, including expected results and cleanup, see [Google acceptance testing](google-acceptance.md).

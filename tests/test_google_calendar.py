@@ -49,7 +49,7 @@ class CalendarReadTests(unittest.TestCase):
     def test_partial_pagination_failure_never_returns_partial_events(self):
         self.session.get.side_effect = [response({'items': [{'id': 'first'}], 'nextPageToken': 'two'}),
                                         response(status=404)]
-        with self.assertRaisesRegex(GoogleError, 'access_failed'):
+        with self.assertRaisesRegex(GoogleError, 'google_calendar_not_found'):
             self.calendar.list_events()
 
     def test_repeated_page_token_and_duplicate_event_fail_closed(self):
@@ -85,6 +85,57 @@ class CalendarReadTests(unittest.TestCase):
         self.assertEqual(self.session.get.call_count, 4)
         self.assertEqual(self.calendar.sleep.call_count, 3)
         self.assertNotIn('SENTINEL', str(caught.exception))
+
+    def test_permanent_failures_have_safe_specific_codes_without_retries(self):
+        cases = {400: 'google_calendar_request_invalid', 401: 'google_calendar_token_rejected',
+                 403: 'google_calendar_permission_denied', 404: 'google_calendar_not_found',
+                 302: 'google_calendar_redirect_rejected', 418: 'google_calendar_access_failed'}
+        for status, expected in cases.items():
+            with self.subTest(status=status):
+                self.session.get.reset_mock()
+                self.session.get.side_effect = [response({'error': {'message': 'SENTINEL_ACCESS'}}, status)]
+                with self.assertRaises(GoogleError) as caught:
+                    self.calendar.list_events()
+                self.assertEqual(str(caught.exception), expected)
+                self.assertEqual(self.session.get.call_count, 1)
+        self.calendar.sleep.assert_not_called()
+
+    def test_api_disabled_and_insufficient_scope_reasons_are_allowlisted(self):
+        cases = (
+            ('errors', 'accessNotConfigured', 'google_calendar_api_disabled'),
+            ('errors', 'serviceDisabled', 'google_calendar_api_disabled'),
+            ('details', 'SERVICE_DISABLED', 'google_calendar_api_disabled'),
+            ('errors', 'insufficientPermissions', 'google_calendar_scope_insufficient'),
+            ('details', 'ACCESS_TOKEN_SCOPE_INSUFFICIENT', 'google_calendar_scope_insufficient'),
+            ('errors', 'SENTINEL_SECRET', 'google_calendar_permission_denied'),
+        )
+        for field, reason, expected in cases:
+            with self.subTest(reason=reason):
+                self.session.get.reset_mock()
+                payload = {'error': {field: [{'reason': reason, 'message': 'SENTINEL_ACCESS'}]}}
+                self.session.get.side_effect = [response(payload, 403)]
+                with self.assertRaises(GoogleError) as caught:
+                    self.calendar.list_events()
+                self.assertEqual(str(caught.exception), expected)
+                self.assertEqual(self.session.get.call_count, 1)
+        self.calendar.sleep.assert_not_called()
+
+    def test_malformed_403_payload_keeps_safe_status_diagnostic(self):
+        for payload in (None, [], {'error': 'SENTINEL'}, {'error': {'errors': None}},
+                        {'error': {'errors': ['SENTINEL', {'reason': []}]}}):
+            self.session.get.side_effect = [response(payload, 403)]
+            with self.assertRaisesRegex(GoogleError, '^google_calendar_permission_denied$'):
+                self.calendar.list_events()
+
+        @contextmanager
+        def invalid_json():
+            value = Mock(status_code=403)
+            value.json.side_effect = ValueError('SENTINEL')
+            yield value
+
+        self.session.get.side_effect = [invalid_json()]
+        with self.assertRaisesRegex(GoogleError, '^google_calendar_permission_denied$'):
+            self.calendar.list_events()
 
     def test_redirects_auth_errors_and_tls_failures_are_not_retried(self):
         for status in (301, 302, 401):

@@ -11,6 +11,38 @@ import requests
 from calendar_sync.google_oauth import GoogleError, GoogleTokens, quiet_network
 
 
+ACCESS_FAILURES = {
+    400: "google_calendar_request_invalid",
+    401: "google_calendar_token_rejected",
+    403: "google_calendar_permission_denied",
+    404: "google_calendar_not_found",
+}
+SAFE_REASONS = {
+    "rateLimitExceeded", "userRateLimitExceeded", "accessNotConfigured",
+    "serviceDisabled", "SERVICE_DISABLED", "insufficientPermissions",
+    "ACCESS_TOKEN_SCOPE_INSUFFICIENT",
+}
+
+
+def error_reasons(response):
+    try:
+        payload = response.json()
+    except ValueError:
+        return set()
+    if not isinstance(payload, dict) or not isinstance(payload.get("error"), dict):
+        return set()
+    reasons = set()
+    for field in ("errors", "details"):
+        entries = payload["error"].get(field)
+        if not isinstance(entries, list):
+            continue
+        for entry in entries:
+            reason = entry.get("reason") if isinstance(entry, dict) else None
+            if isinstance(reason, str) and reason in SAFE_REASONS:
+                reasons.add(reason)
+    return reasons
+
+
 class GoogleCalendar:
     def __init__(self, token_file, calendar_id, *, attempts=4, max_pages=1000,
                  max_events=100000, sleep=time.sleep, jitter=random.random):
@@ -55,14 +87,16 @@ class GoogleCalendar:
                         return payload
                     retryable = response.status_code in {429, 500, 502, 503, 504}
                     if response.status_code == 403:
-                        try:
-                            reasons = response.json().get("error", {}).get("errors", [])
-                            retryable = any(item.get("reason") in {"rateLimitExceeded", "userRateLimitExceeded"}
-                                            for item in reasons)
-                        except (ValueError, TypeError, AttributeError):
-                            retryable = False
+                        reasons = error_reasons(response)
+                        if reasons & {"accessNotConfigured", "serviceDisabled", "SERVICE_DISABLED"}:
+                            raise GoogleError("google_calendar_api_disabled")
+                        if reasons & {"insufficientPermissions", "ACCESS_TOKEN_SCOPE_INSUFFICIENT"}:
+                            raise GoogleError("google_calendar_scope_insufficient")
+                        retryable = bool(reasons & {"rateLimitExceeded", "userRateLimitExceeded"})
                     if not retryable:
-                        raise GoogleError("google_calendar_access_failed")
+                        if 300 <= response.status_code < 400:
+                            raise GoogleError("google_calendar_redirect_rejected")
+                        raise GoogleError(ACCESS_FAILURES.get(response.status_code, "google_calendar_access_failed"))
                     retry_after = self._retry_after(response.headers.get("Retry-After", "0"))
             except requests.exceptions.SSLError:
                 raise GoogleError("google_tls_failed") from None

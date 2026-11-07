@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Changed
+
+- Calendar read failures distinguish disabled API, insufficient scope, rejected token, calendar access and rejected redirects using fixed diagnostic codes without exposing provider payloads.
+
 ### Added
 
 - Feature-specific unit-test and user-acceptance instructions for Google OAuth/reads, plus mandatory testing sections in every PR's template and contribution rules.
