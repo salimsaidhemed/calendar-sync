@@ -1,6 +1,6 @@
 # Google calendar access troubleshooting
 
-Older checkouts return only `google_calendar_access_failed` for non-retryable responses. Update PR #24's checkout, reinstall with `python -m pip install -e .` if needed, and rerun the same read to obtain a fixed diagnostic code. None includes tokens, calendar IDs, URLs or raw Google error messages.
+Older checkouts return only `google_calendar_access_failed` for non-retryable responses. Update to the current merged code or the PR under review, reinstall with `python -m pip install -e .` if needed, and rerun the same read to obtain a fixed diagnostic code. None includes tokens, calendar IDs, URLs or raw Google error messages. For personal/Workspace test and production-authorization configuration, use [the setup guide](google-setup.md).
 
 | Code | Interpretation and next step |
 | --- | --- |
@@ -35,4 +35,4 @@ Prerequisites: current PR checkout, the same disposable token and explicit test 
 3. Rerun UAT D. Expect the three-event PASS line once the configuration issue is resolved; verify events remain unchanged in the Google UI. If it still fails, report the new fixed code rather than token contents.
 4. Restore any temporary test-account/calendar permissions when finished and follow the acceptance guide's disposable-resource cleanup. No event writes are performed by this diagnostic change.
 
-Execution status: fake-response tests can run without credentials. The original live UAT reported `google_calendar_access_failed`; its HTTP status and cause are not yet known. Updated live diagnostics and recovery are awaiting the reviewer's retry, not claimed as passed.
+Record actual diagnostic retries in [the execution record](test-evidence.md), separate from expected steps. Earlier review identified a disabled API and later successful event counts, but those reports do not verify all event shapes, account classes or production paths. Run the applicable current cases and record their actual results; do not carry historical PR status forward as a new acceptance result.

@@ -1,6 +1,27 @@
 # Testing Google OAuth and calendar reads
 
-Review instructions for issue #9 and PR #24. Run from the repository root on Linux or macOS with Python 3.12+; use the PR branch (`gh pr checkout 24`) when reviewing before merge. Do not use production tokens or calendars for manual acceptance testing. No test here exercises Nextcloud writes or an end-to-end sync engine, which are not implemented yet.
+These cases cover the Google OAuth/read feature introduced by issue #9. Run from the repository root on Linux or macOS with Python 3.12+, checking out the PR under review rather than a historical merged branch. First follow the applicable personal/Workspace test path in [Google setup](google-setup.md). Use disposable UAT resources, not production tokens/calendars. No case here tests Nextcloud writes or a complete sync engine.
+
+## Manual case matrix
+
+Each row has shared environment requirements above plus the prerequisites in its linked procedure. Run the complete command blocks, including Python heredoc delimiters. Record a result for each row/subcase using [the evidence template](test-evidence.md); merged PRs do not imply all rows passed.
+
+| Case | Procedure / input | Observable expected result | Related automated cases (not a replacement for live UAT) |
+| --- | --- | --- | --- |
+| UAT-01 | A.1: default CLI, no credentials | Exit 0; explicitly offline/not implemented; no files/browser | CFG-005 |
+| UAT-02 | A.2: explicit live flag | Exit 2, live sync unavailable; no provider writes | CFG-004 |
+| UAT-03 | A.3: authorization help | Exit 0; file options shown; no browser | Manual CLI-help check |
+| UAT-04 | B: absent token in temporary directory | PASS with authorization-required code; no browser/network | OAUTH-005 |
+| UAT-05 | C success: dedicated account + valid Desktop client | Consent completes; exit 0; token 0600, parent 0700; no secret output | OAUTH-001 |
+| UAT-06 | C denial: cancel/deny a second authorization | Fixed error/nonzero exit; old token remains; no raw error | OAUTH-010 simulates flow failure; real denial is manual |
+| UAT-07 | D: exact timed/all-day/daily fixtures | Three active records with correct start types and recurring master; PASS | GCAL-001 covers markers; real event-type setup is manual |
+| UAT-08 | D repeated read + Calendar UI comparison | Same three active fixtures, no duplicates or event changes | GCAL-001, GCAL-003; live comparison manual |
+| UAT-09 | D with deleted fixture history if present | Cancelled records excluded only by UAT assertions; three active fixtures pass | GCAL-001 preserves cancellation records |
+| UAT-10 | E.1: read after test access token expires | Successful read without browser; refreshed token remains 0600 | OAUTH-003; delayed live check recorded separately |
+| UAT-11 | E.2: disposable token made 0644 | Nonzero exit and google_secret_permissions; no event output | OAUTH-007 |
+| UAT-12 | E.2 recovery: restore disposable token 0600 | Read succeeds again, no browser | OAUTH-007 covers rejection; live recovery manual |
+
+For UAT-09, do not delete valid fixtures solely to manufacture history. If no cancelled history exists, record Not applicable with that reason; the fake cancellation test still runs. For UAT-10, record Not run if expiry has not occurred, rather than marking Passed based on its unit test. Error-code diagnosis uses [the troubleshooting guide](google-troubleshooting.md) and GCAL-007 through GCAL-009. Cleanup for every live row is in the final section; no cleanup may revoke production grants.
 
 ## Unit tests: no credentials or provider access
 
@@ -13,7 +34,7 @@ python -m unittest discover -s tests -v
 python -m pip check
 ```
 
-Expected on this PR: 27 focused Google tests and 45 full-suite tests pass with `OK`; dependency checks report no broken requirements. Package installation needs access to the package registry. Tests themselves use fake authorization flows, tokens and HTTP responses; no Google account, browser or network is needed. They cover refresh/revocation, offline grants, scope/endpoint validation, permissions, token replacement/locking, complete pagination, retries, malformed/partial reads and diagnostic redaction. CI repeats the full suite on Python 3.12 and builds/smokes the Docker image.
+Expected in this revision: 27 focused Google tests and 45 full-suite tests pass with `OK`; dependency checks report no broken requirements. See [the case catalogue](test-cases.md) for each case's inputs and expected assertions, and run `python scripts/check_test_catalogue.py` to detect undocumented tests. Installation needs registry access; tests use fakes without real credentials or Google requests. CI repeats the full suite on Python 3.12 and builds/smokes the Docker image.
 
 ## UAT A: offline default and refusal of live sync
 
@@ -53,7 +74,7 @@ Expected: script exits 0 with the PASS line, no browser opens and no Google requ
 
 ## UAT C: local authorization with a disposable test account
 
-Prerequisites: browser on the same workstation, network access, Google Calendar API enabled, a Desktop OAuth client approved for the dedicated test account, and a private `secrets/` directory. Follow [Google setup](google.md#one-time-authorization-on-your-workstation) using `secrets/google-uat-client.json` and `secrets/google-uat-token.json` as the client/token paths. Neither file is committed or included in the Docker image.
+Prerequisites: browser on the same workstation, network access, Google Calendar API enabled in the client project's API library, a Desktop OAuth client accessible to the exact dedicated test account, and a private `secrets/` directory. Complete [the relevant personal/Workspace setup path](google-setup.md) first. External Testing needs an explicit test-user entry; Workspace may require administrator access approval. Use `secrets/google-uat-client.json` and `secrets/google-uat-token.json` consistently. Neither file is committed or included in the Docker image.
 
 ```sh
 mkdir -p secrets
@@ -71,11 +92,15 @@ Failure scenario: rerun the command and deny/cancel consent. Expect a nonzero ex
 
 ## UAT D: read the selected disposable calendar
 
-Prerequisites: UAT C passes. In the dedicated test account create a new, otherwise empty calendar and these three events using Google Calendar's UI:
+Prerequisites: UAT C passes and terminal reports the token was saved. Create/select a dedicated otherwise empty `Calendar Sync UAT` calendar using [the calendar setup steps](google-setup.md#create-and-select-the-calendar). Choose a future date and an explicit timezone (for example Europe/Madrid). Use Google Calendar's event editor to create each row exactly once:
 
-- A single timed event titled `Calendar Sync UAT timed`.
-- A single all-day event titled `Calendar Sync UAT all-day`.
-- A daily recurring event titled `Calendar Sync UAT recurring`.
+| Exact title | Calendar field | Required editor controls | Save / verify |
+| --- | --- | --- | --- |
+| `Calendar Sync UAT timed` | Calendar Sync UAT | All day OFF; 09:00–10:00 on selected date; Does not repeat | Save; open again and confirm visible time fields. |
+| `Calendar Sync UAT all-day` | Calendar Sync UAT | All day ON; selected single date; Does not repeat | Save; reopen and confirm All day remains checked and no timed start is selected. |
+| `Calendar Sync UAT recurring` | Calendar Sync UAT | All day OFF; 11:00–12:00; repeat Daily, optionally end after three occurrences | Save the series; reopen and confirm Daily repeat. Only the master is expected in this unexpanded API read. |
+
+The title `all-day` does not create an all-day event: the editor's All day control must be enabled. Do not create a second set of events on retry. Before reading, verify the selected UAT calendar contains exactly these three active fixtures; delete only accidental test duplicates (the whole duplicate recurring series), or edit their fields. Cancelled history is allowed and must not be removed. Creating recurring instances/overrides manually is outside this fixture.
 
 Copy that calendar's exact ID from its settings. Set the variables below locally, replacing the placeholder; these values are not automatically loaded from `.env`.
 
@@ -123,4 +148,4 @@ Never paste token JSON into UAT evidence. These checks confirm only the disposab
 
 After all clients stop, revoke the dedicated test app grant from the test account's Google permissions if it is no longer needed. Remove only the disposable calendar/events and test secret/lock files you created. Keep production grants and calendars unchanged. Run `unset GOOGLE_UAT_CALENDAR_ID GOOGLE_UAT_TOKEN_FILE` in the test shell; deactivate the virtual environment if desired.
 
-For the PR, record reviewer, date, tested commit, runtime/environment and passed/failed/not-run status for UAT A–E (including subcases), with reasons for skipped cases. Separate unit/CI evidence from manual acceptance. Submit only sanitized output and counts, never event bodies, account identifiers or credentials. Owner review and merge remain required.
+For the PR, record reviewer, date, tested commit, runtime/environment, selected SETUP path and a status for each UAT-01 through UAT-12, with reasons for skipped/not-applicable cases. Use [the evidence template](test-evidence.md). Separate unit/CI evidence from manual acceptance; do not infer an event-shape PASS from count-only diagnostics. Submit only sanitized output/counts, never event bodies, account identifiers or credentials. Owner review and merge remain required.

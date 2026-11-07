@@ -9,6 +9,9 @@
 
 ### Added
 
+- Personal and Workspace Google Calendar/API/OAuth setup paths for UAT and production authorization, including audience rules, administrator controls and lifecycle limits.
+- Traceable catalogue for all 45 automated tests, individual manual UAT cases, exact event fixture controls and a review evidence template.
+- CI test-catalogue completeness check and issue/PR rules mapping acceptance criteria to documented cases.
 - Feature-specific unit-test and user-acceptance instructions for Google OAuth/reads, plus mandatory testing sections in every PR's template and contribution rules.
 - Explicit local Google Desktop OAuth authorization with PKCE, loopback redirect and read-only event scope.
 - Locked, permission-restricted token files with atomic refresh persistence and sanitized failure codes.

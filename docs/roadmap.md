@@ -22,6 +22,8 @@ Epic [#2](https://github.com/salimsaidhemed/calendar-sync/issues/2).
 
 ## M3 — v0.1.0 release readiness
 
+- [#25](https://github.com/salimsaidhemed/calendar-sync/issues/25) Complete test-case documentation and Google setup for all account/environment paths (follow-up to UAT feedback).
+
 Epic [#3](https://github.com/salimsaidhemed/calendar-sync/issues/3).
 
 - [#15](https://github.com/salimsaidhemed/calendar-sync/issues/15) Implement continuous worker lifecycle and health reporting

@@ -32,6 +32,8 @@ The scaffold exits after its check. The eventual worker will poll continuously; 
 
 ## Development workflow
 
+Start with [Google setup by account/environment](docs/google-setup.md) and [the testing guide](docs/testing.md). The [automated catalogue](docs/test-cases.md) covers every discovered unit test; the [manual acceptance guide](docs/google-acceptance.md) defines exact event fixtures and individual UAT cases. Production Google authorization preparation is documented separately from the still-incomplete production sync worker.
+
 Repository: [salimsaidhemed/calendar-sync](https://github.com/salimsaidhemed/calendar-sync) (private).
 
 All changes use linked issues, feature branches and owner-approved pull requests. Only the owner merges. See [CONTRIBUTING.md](CONTRIBUTING.md), [the roadmap](docs/roadmap.md) and [the changelog](CHANGELOG.md). No license is selected yet; choose one before public distribution.
