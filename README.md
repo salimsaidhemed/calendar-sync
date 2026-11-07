@@ -4,6 +4,8 @@ Repository foundation for Calendar Sync v0.1.0: a Dockerized Python worker conne
 
 **Status: scaffold only. No calendar connections or sync operations are implemented yet.** Running the command validates the safe defaults and reports this status; it never contacts either provider. This is not a released v0.1.0 sync engine.
 
+The [SQLite state library](docs/state.md) now provides configuration-scoped mappings, run history, audit records and migrations. It is not yet wired into the CLI; normal scaffold runs do not create a database.
+
 ## Local development
 
 Python 3.12 or newer:
