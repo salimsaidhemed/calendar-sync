@@ -4,6 +4,9 @@
 
 ### Added
 
+- Configuration-scoped SQLite persistence with atomic versioned migrations, worker locking, unique event mappings and run history.
+- Append-only audit entries committed atomically with applied mappings; dry-run runs cannot create or advance applied mappings.
+- State recovery and integration guide with credential-file references and no stored credential contents.
 - Python package scaffold with dry-run defaults and explicit refusal of live mode.
 - Dockerfile, Compose example and credential-free CI tests.
 - Architecture acceptance criteria for secure OAuth, SQLite mappings, duplicate prevention and conflict handling.
