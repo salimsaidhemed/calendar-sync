@@ -3,9 +3,7 @@
 from contextlib import contextmanager
 import fcntl
 from functools import partial
-import http.client
 import json
-import logging
 import os
 from pathlib import Path
 import stat
@@ -16,6 +14,7 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 import requests
 
+from calendar_sync.security import quiet_network
 
 SCOPES = ("https://www.googleapis.com/auth/calendar.events.readonly",)
 TOKEN_URI = "https://oauth2.googleapis.com/token"
@@ -25,22 +24,6 @@ AUTH_URIS = {AUTH_URI, "https://accounts.google.com/o/oauth2/v2/auth"}
 
 class GoogleError(RuntimeError):
     """Messages contain fixed reason codes, never upstream errors or payloads."""
-
-
-@contextmanager
-def quiet_network():
-    previous = logging.root.manager.disable
-    http_debug = http.client.HTTPConnection.debuglevel
-    https_debug = http.client.HTTPSConnection.debuglevel
-    logging.disable(logging.CRITICAL)
-    http.client.HTTPConnection.debuglevel = 0
-    http.client.HTTPSConnection.debuglevel = 0
-    try:
-        yield
-    finally:
-        http.client.HTTPConnection.debuglevel = http_debug
-        http.client.HTTPSConnection.debuglevel = https_debug
-        logging.disable(previous)
 
 
 def read_private_json(path):

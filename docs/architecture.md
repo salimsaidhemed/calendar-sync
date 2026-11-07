@@ -1,6 +1,6 @@
 # v0.1.0 implementation plan
 
-This document specifies future work; these features are not implemented by the repository scaffold.
+This document specifies the target engine architecture. SQLite state, Google authorization/reads and Nextcloud read/normalization libraries are implemented; planner, execution and worker wiring remain future work. See the feature guides and catalogue for verified behavior.
 
 ## Direction and ownership
 
@@ -34,4 +34,4 @@ Support ordinary single events only initially, including all-day exclusive end d
 
 ## Test gates before declaring v0.1.0 complete
 
-Fake-provider tests must cover repeated runs, crash after remote create before local commit, create collisions, ETag conflicts, incomplete pagination, provider outages, deleted source events, recurring events, DST/all-day dates, dry-run followed by live run, configuration isolation, token refresh and redaction. Current tests validate only the scaffold defaults and refusal to run live.
+Fake-provider tests must cover repeated runs, crash after remote create before local commit, create collisions, ETag conflicts, incomplete pagination, provider outages, deleted source events, recurring events, DST/all-day dates, dry-run followed by live run, configuration isolation, token refresh and redaction. Current coverage is enumerated in test-cases.md; write-execution/crash-reconciliation gates remain future requirements.
