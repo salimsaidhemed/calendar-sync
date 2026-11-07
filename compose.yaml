@@ -1,0 +1,18 @@
+services:
+  worker:
+    build: .
+    env_file: .env
+    restart: "no"
+    read_only: true
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    volumes:
+      - sync-data:/data
+
+volumes:
+  sync-data:
