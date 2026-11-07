@@ -4,11 +4,15 @@
 
 ### Changed
 
+- Added an explicit loopback-only HTTP test option for CalDAV, with strict boolean opt-in and matching origin; HTTPS remains mandatory by default and non-loopback HTTP is refused.
 - Google UAT fixture checks exclude cancelled records while still requiring exactly three active test events; the adapter continues returning cancellation markers.
 - Calendar read failures distinguish disabled API, insufficient scope, rejected token, calendar access and rejected redirects using fixed diagnostic codes without exposing provider payloads.
 
 ### Added
 
+- Read-only Nextcloud CalDAV REPORT adapter with explicit HTTPS origin/calendar boundaries, private app-password files, safe XML parsing, strong ETags and bounded complete-response validation.
+- Provider-neutral event normalization and iCalendar serialization with UTC timed events, exclusive all-day ends, DST checks, stable fingerprints and documented recurrence/field skip reasons.
+- 33 documented CalDAV/normalization tests and complete offline/live Nextcloud acceptance instructions; no provider writes or automatic sync introduced.
 - Personal and Workspace Google Calendar/API/OAuth setup paths for UAT and production authorization, including audience rules, administrator controls and lifecycle limits.
 - Traceable catalogue for all 45 automated tests, individual manual UAT cases, exact event fixture controls and a review evidence template.
 - CI test-catalogue completeness check and issue/PR rules mapping acceptance criteria to documented cases.
