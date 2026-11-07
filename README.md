@@ -6,6 +6,8 @@ Repository foundation for Calendar Sync v0.1.0: a Dockerized Python worker conne
 
 The [SQLite state library](docs/state.md) now provides configuration-scoped mappings, run history, audit records and migrations. It is not yet wired into the CLI; normal scaffold runs do not create a database.
 
+The [Google authorization and read adapter](docs/google.md) supports an explicit local `authorize-google` command, secure token refresh and complete calendar reads. Authorization is optional during development. The default command still performs no network access or sync; Nextcloud and the planner are not implemented yet.
+
 ## Local development
 
 Python 3.12 or newer:
