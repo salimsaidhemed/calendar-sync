@@ -1,0 +1,34 @@
+# Contributing
+
+## Issue to pull request
+
+1. Select an issue from its milestone and review its parent epic and dependencies.
+2. Start from current `origin/main` and create `feature/<issue>-<short-description>` (or `fix/<issue>-<description>`).
+3. Implement the scoped change, tests and documentation together. Update CHANGELOG.md under Unreleased for shipped changes. For planning-only changes, record them in the roadmap or workflow docs and explain any changelog exemption.
+4. Run relevant tests. Record exact results and any unavailable checks in the PR.
+5. Open a PR against main with linked issues, change description, test evidence and limitations. Use `Closes #N` only when all acceptance criteria are met; otherwise use `Refs #N`.
+6. Wait for the repository owner to approve and merge. Agents must not merge or enable auto-merge, even if checks pass.
+
+No direct commits or pushes to main. A single empty bootstrap commit was authorized to create a PR base in the previously empty repository; it is not an ongoing exception.
+
+## Verification
+
+```sh
+python -m pip install -e .
+python -m unittest discover -s tests -v
+calendar-sync
+docker build -t calendar-sync:test .
+docker run --rm --network none --read-only calendar-sync:test
+```
+
+The current CLI only validates scaffold configuration; it does not sync events. Provider integration tests must use fake services unless a dedicated test calendar is explicitly authorized.
+
+## Branch protection
+
+The owner manages main protection. Require pull requests and the `test` CI check, block direct pushes and force pushes, and require review where the account plan and reviewer identities allow it. GitHub does not permit authors to approve their own PRs: when the agent publishes using the owner's account, owner review is a manual gate followed by an owner merge, or needs a separate contributor identity for enforceable approval. Never bypass or weaken protection to complete work. Private-repository protection availability depends on the GitHub plan. Track verification in issue #8.
+
+On 2026-11-07, GitHub returned HTTP 403 for this private repository's protection API: upgrading to GitHub Pro or changing visibility is required for that feature. The repository remains private. The feature-branch and owner-merge policy applies, but server-side enforcement has not been verified and must not be claimed as active. Issue #8 tracks resolution.
+
+## Documentation requirements
+
+Document configuration defaults, credential scopes, migrations, compatibility changes and operational recovery as they change. PR descriptions must explain behavior, tests and remaining limitations. Never put credentials or real calendar data in issues, logs, examples or fixtures.

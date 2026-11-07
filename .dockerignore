@@ -1,0 +1,13 @@
+.git
+.github
+.venv
+__pycache__
+*.egg-info
+.env
+.env.*
+secrets
+data
+*.sqlite*
+*.db*
+*token*.json
+*credentials*.json

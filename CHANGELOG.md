@@ -1,0 +1,12 @@
+# Changelog
+
+## Unreleased
+
+### Added
+
+- Python package scaffold with dry-run defaults and explicit refusal of live mode.
+- Dockerfile, Compose example and credential-free CI tests.
+- Architecture acceptance criteria for secure OAuth, SQLite mappings, duplicate prevention and conflict handling.
+- Five delivery milestones, linked epic/task roadmap, contribution workflow and PR/issue templates.
+
+Calendar synchronization is not yet implemented. No v0.1.0 release has been published.
