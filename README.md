@@ -2,11 +2,11 @@
 
 Repository foundation for Calendar Sync v0.1.0: a Dockerized Python worker connecting one Google Workspace master calendar to one Nextcloud CalDAV calendar at `https://nextcloud.tcadc.com`.
 
-**Status: provider/state libraries implemented; sync engine not yet implemented.** The default command validates safe defaults and reports scaffold status; it never contacts either provider. This is not a released v0.1.0 sync engine.
+**Status: provider/state libraries and dry-run planner implemented; write execution and worker not yet implemented.** The default command validates safe defaults and reports scaffold status; it never contacts either provider. This is not a released v0.1.0 sync engine.
 
 The [SQLite state library](docs/state.md) now provides configuration-scoped mappings, run history, audit records and migrations. It is not yet wired into the CLI; normal scaffold runs do not create a database.
 
-The [Google authorization and read adapter](docs/google.md) supports explicit local authorization, token refresh and complete reads. The [Nextcloud CalDAV adapter](docs/nextcloud.md) adds explicit-calendar reads and [event normalization](docs/nextcloud.md#event-normalization-and-serialization). Authorization remains optional during development. Planner, execution and continuous worker wiring are future features; no provider writes are available.
+The [Google adapter](docs/google.md) and [Nextcloud adapter](docs/nextcloud.md) supply complete reads and [event normalization](docs/nextcloud.md#event-normalization-and-serialization). The [dry-run planner](docs/planner.md) proposes actions with deterministic identities and ownership/conflict checks. Authorization remains optional during development. Write execution and continuous worker wiring remain future features; no provider writes are available.
 
 ## Local development
 

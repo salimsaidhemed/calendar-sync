@@ -1,6 +1,6 @@
 # v0.1.0 implementation plan
 
-This document specifies the target engine architecture. SQLite state, Google authorization/reads and Nextcloud read/normalization libraries are implemented; planner, execution and worker wiring remain future work. See the feature guides and catalogue for verified behavior.
+This document specifies the target engine architecture. SQLite state, provider read/normalization libraries and the dry-run planner are implemented; write execution and continuous worker wiring remain future work. See the feature guides and catalogue for verified behavior.
 
 ## Direction and ownership
 

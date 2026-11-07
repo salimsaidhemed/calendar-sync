@@ -10,6 +10,9 @@
 
 ### Added
 
+- Pure configuration-scoped dry-run planner with deterministic identities, six proposal outcomes and strict ownership/baseline/ETag checks; no automatic adoption, deletes or provider writes.
+- Read-only configuration/mapping snapshots and provider preview orchestration that do not create runs/audit rows or advance applied mappings.
+- 23 documented planner/preview tests and complete offline/live-read acceptance instructions, including lost-state collisions, missing/cancelled sources and destination edits.
 - Read-only Nextcloud CalDAV REPORT adapter with explicit HTTPS origin/calendar boundaries, private app-password files, safe XML parsing, strong ETags and bounded complete-response validation.
 - Provider-neutral event normalization and iCalendar serialization with UTC timed events, exclusive all-day ends, DST checks, stable fingerprints and documented recurrence/field skip reasons.
 - 33 documented CalDAV/normalization tests and complete offline/live Nextcloud acceptance instructions; no provider writes or automatic sync introduced.

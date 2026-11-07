@@ -17,7 +17,7 @@ python -m unittest discover -s tests -v
 python -m pip check
 ```
 
-Expected: 20 CalDAV tests (DAV-001–020), 13 normalization tests (NORM-001–013), 78 documented/discovered tests and 78 passing tests. No credentials, Nextcloud or Google requests are needed. [The catalogue](test-cases.md) lists each input/expected result. HTTP/XML/iCalendar fixtures are local test constants; Google conversion fixtures are local dictionaries.
+Expected: 20 CalDAV tests (DAV-001–020), 13 normalization tests (NORM-001–013), 101 documented/discovered tests and 101 passing tests. No credentials, Nextcloud or Google requests are needed. [The catalogue](test-cases.md) lists each input/expected result. HTTP/XML/iCalendar fixtures are local test constants; Google conversion fixtures are local dictionaries.
 
 ## Set up a dedicated Nextcloud test calendar
 

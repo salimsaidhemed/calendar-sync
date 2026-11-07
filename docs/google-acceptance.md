@@ -34,7 +34,7 @@ python -m unittest discover -s tests -v
 python -m pip check
 ```
 
-Expected in this revision: 27 focused Google tests and 78 full-suite tests pass with `OK`; dependency checks report no broken requirements. See [the case catalogue](test-cases.md) for each case's inputs and expected assertions, and run `python scripts/check_test_catalogue.py` to detect undocumented tests. Installation needs registry access; tests use fakes without real credentials or Google requests. CI repeats the full suite on Python 3.12 and builds/smokes the Docker image.
+Expected in this revision: 27 focused Google tests and 101 full-suite tests pass with `OK`; dependency checks report no broken requirements. See [the case catalogue](test-cases.md) for each case's inputs and expected assertions, and run `python scripts/check_test_catalogue.py` to detect undocumented tests. Installation needs registry access; tests use fakes without real credentials or Google requests. CI repeats the full suite on Python 3.12 and builds/smokes the Docker image.
 
 ## UAT A: offline default and refusal of live sync
 
