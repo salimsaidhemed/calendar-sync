@@ -13,8 +13,11 @@ No direct commits or pushes to main. A single empty bootstrap commit was authori
 
 ## Verification
 
+Follow [the testing procedure](docs/testing.md). Before implementation, map each acceptance criterion to existing or proposed test-case IDs; before review, update [the full automated catalogue](docs/test-cases.md) and relevant manual cases. Each case needs prerequisites, concrete inputs/fixtures, executable steps, expected results including negative paths, state effects and cleanup. Use exact event editor controls, not titles alone, and complete shell/Python command blocks. Record each applicable manual subcase with the [evidence template](docs/test-evidence.md); a PR merge does not establish UAT success.
+
 ```sh
 python -m pip install -e .
+python scripts/check_test_catalogue.py
 python -m unittest discover -s tests -v
 calendar-sync
 docker build -t calendar-sync:test .

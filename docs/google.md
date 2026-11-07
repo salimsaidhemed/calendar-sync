@@ -1,4 +1,6 @@
-# Google Workspace authorization and reads
+# Google authorization and reads: implementation reference
+
+Start with [Google setup](google-setup.md) for separate personal/Workspace testing and production-authorization paths. This page describes adapter behavior and storage; [testing.md](testing.md) indexes all test procedures and [test-cases.md](test-cases.md) documents every automated case.
 
 For fixed calendar-access error codes and recovery steps, see [Google troubleshooting](google-troubleshooting.md).
 
