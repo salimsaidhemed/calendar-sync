@@ -92,6 +92,7 @@ try:
     events = calendar.list_events()
 except GoogleError as error:
     raise SystemExit(str(error)) from None
+events = [event for event in events if event.get('status') != 'cancelled']
 by_title = {event.get('summary'): event for event in events}
 expected = {'Calendar Sync UAT timed', 'Calendar Sync UAT all-day', 'Calendar Sync UAT recurring'}
 assert set(by_title) == expected and len(events) == 3, 'FAIL: unexpected test fixture count/titles'
@@ -104,6 +105,8 @@ PY
 ```
 
 Expected: exit 0 with the PASS line. Verify in the Calendar UI that the three events remain unchanged. Repeat the script: expect the same count and no duplicates or new events in the UI. The read adapter must not open a browser. If event edits are still propagating, wait and retry before diagnosing a fixture mismatch.
+
+The fixture assertions count only active events. Deleted test events can remain as cancellation records because the adapter intentionally requests `showDeleted=true`; they are excluded only by this UAT script, not by the adapter. For example, six returned records with three cancelled and one active event of each expected title is a valid fixture. Duplicate active events still fail the count check. Do not recreate calendars merely to remove cancellation history.
 
 Full pagination, rate limits and partial-response failures are covered by the fake-response tests; this three-event manual fixture does not establish live pagination behavior. The future planner will skip recurrence; this adapter merely preserves the recurring master.
 

@@ -4,6 +4,7 @@
 
 ### Changed
 
+- Google UAT fixture checks exclude cancelled records while still requiring exactly three active test events; the adapter continues returning cancellation markers.
 - Calendar read failures distinguish disabled API, insufficient scope, rejected token, calendar access and rejected redirects using fixed diagnostic codes without exposing provider payloads.
 
 ### Added
