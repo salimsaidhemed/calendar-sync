@@ -9,7 +9,7 @@ from xml.sax.saxutils import escape
 
 import requests
 
-from calendar_sync.caldav import CalDAVCalendar, CalDAVError
+from calendar_sync.caldav import CalDAVCalendar, CalDAVError, CalDAVPreconditionError
 
 
 BASE = 'https://nextcloud.tcadc.com/remote.php/dav/calendars/test/uat/'
@@ -25,8 +25,8 @@ def multistatus(*members):
 
 
 @contextmanager
-def response(body, status=207):
-    value = Mock(status_code=status)
+def response(body, status=207, headers=None):
+    value = Mock(status_code=status, headers=headers or {})
     value.iter_content.return_value = [body]
     yield value
 
@@ -42,6 +42,84 @@ class CalDAVTests(unittest.TestCase):
         patcher = patch('calendar_sync.caldav.requests.Session')
         self.session = patcher.start().return_value.__enter__.return_value
         self.addCleanup(patcher.stop)
+
+    def test_targeted_get_checks_etag_scope_and_only_404_means_absent(self):
+        self.session.get.side_effect = [response(ICS.encode(), 200, {'ETag': '"fresh"'}), response(b'', 404)]
+        resource = self.calendar.get_resource(BASE + 'one.ics')
+        self.assertEqual(resource.etag, '"fresh"')
+        self.assertEqual(resource.uid, 'test-uid')
+        self.assertIsNone(self.calendar.get_resource(BASE + 'one.ics'))
+        with self.assertRaises(CalDAVError):
+            self.calendar.get_resource('https://evil.invalid/event.ics')
+        self.assertFalse(self.session.get.call_args.kwargs['allow_redirects'])
+        self.assertTrue(self.session.get.call_args.kwargs['verify'])
+        for status in (401, 403, 302):
+            self.session.get.side_effect = [response(b'SENTINEL', status)]
+            with self.assertRaises(CalDAVError) as caught:
+                self.calendar.get_resource(BASE + 'one.ics')
+            self.assertNotIn('SENTINEL', str(caught.exception))
+        self.assertEqual(self.session.get.call_args.kwargs['auth'], ('test', 'SENTINEL_PASSWORD'))
+        self.assertEqual(self.session.get.call_args.kwargs['timeout'], (5, 30))
+
+    def test_targeted_get_rejects_missing_weak_etag_and_oversized_data(self):
+        for headers in ({}, {'ETag': 'W/"weak"'}):
+            self.session.get.side_effect = [response(ICS.encode(), 200, headers)]
+            with self.assertRaises(CalDAVError):
+                self.calendar.get_resource(BASE + 'one.ics')
+        self.calendar.max_bytes = 2
+        self.session.get.side_effect = [response(ICS.encode(), 200, {'ETag': '"tag"'})]
+        with self.assertRaisesRegex(CalDAVError, 'caldav_response_limit'):
+            self.calendar.get_resource(BASE + 'one.ics')
+
+    def test_put_is_disabled_by_default_and_requires_one_valid_precondition(self):
+        for kwargs in ({}, {'allow_write': 'true'}, {'allow_write': True},
+                       {'allow_write': True, 'create': 'true'},
+                       {'allow_write': True, 'create': True, 'expected_etag': '"tag"'},
+                       {'allow_write': True, 'expected_etag': '*'},
+                       {'allow_write': True, 'expected_etag': 'W/"weak"'},
+                       {'allow_write': True, 'expected_etag': '"tag"\r\nInjected: true'}):
+            with self.assertRaises(CalDAVError):
+                self.calendar.put_resource(BASE + 'one.ics', ICS.encode(), **kwargs)
+        self.session.put.assert_not_called()
+
+    def test_conditional_create_and_update_put_headers_are_exact(self):
+        self.session.put.side_effect = [response(b'', 201), response(b'', 204)]
+        self.calendar.put_resource(BASE + 'one.ics', ICS.encode(), create=True, allow_write=True)
+        self.assertEqual(self.session.put.call_args.kwargs['headers']['If-None-Match'], '*')
+        self.assertNotIn('If-Match', self.session.put.call_args.kwargs['headers'])
+        self.calendar.put_resource(BASE + 'one.ics', ICS.encode(), expected_etag='"current"', allow_write=True)
+        arguments = self.session.put.call_args.kwargs
+        self.assertEqual(arguments['headers']['If-Match'], '"current"')
+        self.assertNotIn('If-None-Match', arguments['headers'])
+        self.assertFalse(arguments['allow_redirects'])
+        self.assertTrue(arguments['verify'])
+        self.assertFalse(self.session.trust_env)
+        self.assertEqual(arguments['auth'], ('test', 'SENTINEL_PASSWORD'))
+        self.assertEqual(arguments['timeout'], (5, 30))
+        self.assertEqual(arguments['headers']['Content-Type'], 'text/calendar; charset=utf-8')
+        self.assertEqual(self.session.put.call_args.args, (BASE + 'one.ics',))
+
+    def test_put_conflicts_redirects_and_transport_failures_are_sanitized(self):
+        for status, code in ((412, 'caldav_write_conflict'), (409, 'caldav_write_conflict'),
+                             (302, 'caldav_redirect_rejected'), (401, 'caldav_authentication_failed'),
+                             (403, 'caldav_permission_denied'), (500, 'caldav_write_uncertain')):
+            self.session.put.side_effect = [response(b'SENTINEL', status)]
+            with self.assertRaises(CalDAVError) as caught:
+                self.calendar.put_resource(BASE + 'one.ics', ICS.encode(), create=True, allow_write=True)
+            self.assertEqual(str(caught.exception), code)
+            if status in (409, 412):
+                self.assertIsInstance(caught.exception, CalDAVPreconditionError)
+        self.session.put.side_effect = requests.exceptions.Timeout('SENTINEL_PASSWORD')
+        with self.assertRaisesRegex(CalDAVError, '^caldav_write_uncertain$'):
+            self.calendar.put_resource(BASE + 'one.ics', ICS.encode(), create=True, allow_write=True)
+
+    def test_put_refuses_foreign_resource_empty_or_oversized_payload_before_network(self):
+        for href, payload in (('https://evil.invalid/event.ics', ICS.encode()),
+                              (BASE + 'one.ics', b''), (BASE + 'one.ics', 'not bytes'),
+                              (BASE + 'one.ics', b'x' * (self.calendar.max_bytes + 1))):
+            with self.assertRaises(CalDAVError):
+                self.calendar.put_resource(href, payload, create=True, allow_write=True)
+        self.session.put.assert_not_called()
 
     def test_http_loopback_is_rejected_without_explicit_opt_in(self):
         for host in ('localhost', '127.0.0.1', '[::1]'):

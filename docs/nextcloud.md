@@ -1,6 +1,6 @@
 # Nextcloud CalDAV reads and event conversion
 
-Issue #11 provides a read-only CalDAV adapter for one explicit calendar at `https://nextcloud.tcadc.com`, plus pure Google-event normalization/iCalendar serialization. The default CLI remains offline. This feature has no PUT/POST/DELETE methods, discovery by display name, automatic sync, SQLite wiring or invitation sending. Conditional writes and crash recovery belong to issue #13; ownership/UID planning belongs to #12.
+Issue #11 provides explicit-calendar CalDAV reads at `https://nextcloud.tcadc.com`, plus pure event normalization/serialization. Issue #13 adds scoped targeted GET and conditional PUT for the [executor](execution.md). PUT is refused unless `allow_write=True`; creates require `If-None-Match: *`, updates require a strong `If-Match`. Transport alone does not authorize ownership: use the executor. No POST/DELETE, discovery by display name, automatic worker or invitation sending is provided. The default CLI stays offline; all read acceptance below remains read-only.
 
 ## Install and run unit tests
 
@@ -17,7 +17,7 @@ python -m unittest discover -s tests -v
 python -m pip check
 ```
 
-Expected: 23 CalDAV tests (DAV-001–023), 13 normalization tests (NORM-001–013), 104 documented/discovered tests and 104 passing tests. No credentials, Nextcloud or Google requests are needed. [The catalogue](test-cases.md) lists each input/expected result. HTTP/XML/iCalendar fixtures are local test constants; Google conversion fixtures are local dictionaries.
+Expected: 29 CalDAV tests (DAV-001–029), 13 normalization tests (NORM-001–013), 141 documented/discovered tests and 141 passing tests. No credentials, Nextcloud or Google requests are needed. [The catalogue](test-cases.md) lists each input/expected result. HTTP/XML/iCalendar fixtures are local test constants; Google conversion fixtures are local dictionaries.
 
 ## Set up a dedicated Nextcloud test calendar
 
@@ -82,7 +82,7 @@ Provider diagnostics suppression is shared with Google in `security.py` and stil
 | Nonzero fractional seconds | `unsupported_subsecond`; subsecond data is not silently truncated. |
 | Attendees/organizer/creator, conference/link, attachments, reminders, visibility/transparency/color | Ordinary event can be `supported_with_omissions`; omitted property names are returned for a future audit record. These fields are not serialized. |
 
-Normalized values provide deterministic SHA-256 fingerprints over supported fields and identity. Key order and omitted-field changes do not alter that fingerprint; a supported-field change does. Timed fields and text newlines are canonicalized. Privacy/visibility, participation, reminders and conferencing are not reproduced; choose destination calendar access appropriately before future write rollout. This feature does not yet persist skip/omission audit entries; the future planner must do so.
+Normalized values provide deterministic SHA-256 fingerprints over supported fields and identity. Key order and omitted-field changes do not alter that fingerprint; a supported-field change does. Timed fields and text newlines are canonicalized. Privacy/visibility, participation, reminders and conferencing are not reproduced; choose destination calendar access appropriately before any writes. The normalization library returns omission/skip metadata without persisting it; the live executor records action/reason codes, not a detailed per-field omission history.
 
 `serialize_event(normalized, uid, stamp=aware_datetime)` returns RFC 5545 bytes for one VCALENDAR/VEVENT. The caller supplies a stable UID and explicit stamp; UID generation/ownership marking is deferred to #12. Timed fields serialize in UTC, date fields remain DATE with exclusive DTEND, TEXT values are escaped and UTF-8 lines folded by `icalendar`. There is no METHOD, attendee, organizer or alarm component. The function has no upload side effects. Never treat caller-supplied UID alone as proof that an existing resource is owned.
 
@@ -249,4 +249,4 @@ Stop test clients, restore permissions, revoke only the dedicated test app passw
 | caldav_partial_response / response_limit / resource_limit | Entire read failed; reduce test dataset or deliberately raise limits where appropriate. No deletion or partial sync. |
 | caldav_invalid_or_incomplete_read / invalid_response / invalid_calendar_data / invalid_etag / duplicate_resource | Report fixed code with server/version context; preserve the failing calendar and do not publish raw data. |
 
-Keep setup/operator, tested commit, environment, NC-UAT case/subcase status and sanitized evidence in [the execution record](test-evidence.md). Conditional writes, destination ownership adoption, full sync, Docker secret mounts and production rollouts require future issues and separate acceptance.
+Keep setup/operator, tested commit, environment, NC-UAT case/subcase status and sanitized evidence in [the execution record](test-evidence.md). Conditional writes require separate [execution acceptance](execution.md); destination ownership adoption is refused. Continuous sync, Docker secret mounts and production rollouts remain future work.

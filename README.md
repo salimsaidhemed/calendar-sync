@@ -2,11 +2,11 @@
 
 Repository foundation for Calendar Sync v0.1.0: a Dockerized Python worker connecting one Google Workspace master calendar to one Nextcloud CalDAV calendar at `https://nextcloud.tcadc.com`.
 
-**Status: provider/state libraries and dry-run planner implemented; write execution and worker not yet implemented.** The default command validates safe defaults and reports scaffold status; it never contacts either provider. This is not a released v0.1.0 sync engine.
+**Status: provider/state libraries, planner and opt-in conditional executor implemented; continuous worker pending.** The default command validates safe defaults and reports scaffold status; it never contacts either provider. This is not a released v0.1.0 sync engine.
 
 The [SQLite state library](docs/state.md) now provides configuration-scoped mappings, run history, audit records and migrations. It is not yet wired into the CLI; normal scaffold runs do not create a database.
 
-The [Google adapter](docs/google.md) and [Nextcloud adapter](docs/nextcloud.md) supply complete reads and [event normalization](docs/nextcloud.md#event-normalization-and-serialization). The [dry-run planner](docs/planner.md) proposes actions with deterministic identities and ownership/conflict checks. Authorization remains optional during development. Write execution and continuous worker wiring remain future features; no provider writes are available.
+The [Google adapter](docs/google.md) and [Nextcloud adapter](docs/nextcloud.md) supply complete reads and [event normalization](docs/nextcloud.md#event-normalization-and-serialization). The [dry-run planner](docs/planner.md) proposes actions with deterministic identities and ownership/conflict checks. The [executor library and acceptance guide](docs/execution.md) add explicitly enabled Nextcloud writes, conditional requests and durable crash recovery. Authorization remains optional during development. The CLI/Compose entry point still runs the offline scaffold; continuous worker wiring remains future work.
 
 ## Local development
 

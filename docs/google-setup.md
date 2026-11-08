@@ -2,7 +2,7 @@
 
 This guide covers personal Google accounts (including non-Workspace Google accounts), Google Workspace accounts, test environments and production authorization. Reviewed against the linked Google documentation on 2026-11-07. Console wording can change; the selected Cloud project, OAuth client, account and calendar must stay consistent.
 
-**Current capability:** local Desktop OAuth authorization and read-only calendar access. The continuous sync worker, Nextcloud adapter and production deployment wiring are not implemented. Preparing production authorization does not make the current scaffold a production sync service; live sync remains refused.
+**Current capability:** local Desktop OAuth authorization and read-only Google access, Nextcloud adapter and opt-in executor library. The continuous sync worker and production deployment wiring are not implemented. Preparing production authorization does not make the scaffold a production sync service; the default CLI stays offline. Disposable live executor acceptance is documented in [execution.md](execution.md).
 
 ## Choose the account and environment
 

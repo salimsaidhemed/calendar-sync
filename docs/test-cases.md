@@ -4,7 +4,7 @@ Every discovered unit test has a stable case ID below. IDs refer to tests, not a
 
 ## Shared procedure
 
-Use the environment setup in [testing.md](testing.md). All 104 tests use temporary/fake state; none needs real credentials or provider requests. Run `python -m unittest discover -s tests -v` for the complete suite. To execute a row, use `python -m unittest discover -s tests -k '<full test identifier from the row>' -v`; expect exactly one test with `OK`. Prerequisites and cleanup are shared: Python 3.12+, installed project dependencies, local filesystem on Linux/macOS; temporary files are cleaned automatically. Expected exception assertions count as passing tests, not user-visible failures.
+Use the environment setup in [testing.md](testing.md). All 141 tests use temporary/fake state; none needs real credentials or provider requests. Run `python -m unittest discover -s tests -v` for the complete suite. To execute a row, use `python -m unittest discover -s tests -k '<full test identifier from the row>' -v`; expect exactly one test with `OK`. Prerequisites and cleanup are shared: Python 3.12+, installed project dependencies, local filesystem on Linux/macOS; temporary files are cleaned automatically. Expected exception assertions count as passing tests, not user-visible failures.
 
 ## CFG: test_scaffold.py
 
@@ -24,7 +24,7 @@ Source: [test_state.py](../tests/test_state.py). Run this group with `python -m 
 
 | Case ID | Executable test identifier | Setup / input | Expected result |
 | --- | --- | --- | --- |
-| STATE-001 | `test_state.StateTests.test_migration_reopen_and_permissions` | Create configuration, live mapping, successful run; reopen file | Schema v1, foreign keys, mapping/audit persist and file is 0600. |
+| STATE-001 | `test_state.StateTests.test_migration_reopen_and_permissions` | Create configuration, live mapping, successful run; reopen file | Current schema, foreign keys, mapping/audit persist and file is 0600. |
 | STATE-002 | `test_state.StateTests.test_future_schema_rejected_without_changes_and_lock_released` | Database user_version=999 | Open fails without downgrade; lock is released so repaired version can reopen. |
 | STATE-003 | `test_state.StateTests.test_failed_migration_rolls_back_schema_and_version` | Inject invalid SQL into initial migration | No tables/version commit; subsequent valid open succeeds. |
 | STATE-004 | `test_state.StateTests.test_second_process_cannot_open_state_and_release_allows_reopen` | Parent process holds store; competing store and subprocess | Both reject contention; subprocess succeeds after release. |
@@ -101,7 +101,7 @@ Source: [test_events.py](../tests/test_events.py). Run `python -m unittest disco
 
 ## DAV: test_caldav.py
 
-Source: [test_caldav.py](../tests/test_caldav.py). Run `python -m unittest discover -s tests -p 'test_caldav.py' -v`; expect 23 tests with `OK`. All fixtures are local/fake; no credentials or provider requests.
+Source: [test_caldav.py](../tests/test_caldav.py). Run `python -m unittest discover -s tests -p 'test_caldav.py' -v`; expect 29 tests with `OK`. All fixtures are local/fake; no credentials or provider requests.
 
 | Case ID | Executable test identifier | Setup / input | Expected result |
 | --- | --- | --- | --- |
@@ -142,7 +142,7 @@ Source: [test_caldav.py](../tests/test_caldav.py). Run `python -m unittest disco
 
 ## PLAN: test_planner.py
 
-Source: [test_planner.py](../tests/test_planner.py). Run `python -m unittest discover -s tests -p 'test_planner.py' -v`; expect 23 tests with `OK`. Inputs use fake provider responses, owned payloads and temporary SQLite state; no real credentials or event writes.
+Source: [test_planner.py](../tests/test_planner.py). Run `python -m unittest discover -s tests -p 'test_planner.py' -v`; expect 29 tests with `OK`. Inputs use fake provider responses, owned payloads and temporary SQLite state; no real credentials or event writes.
 
 | Case ID | Executable test identifier | Setup / input | Expected result |
 | --- | --- | --- | --- |
@@ -170,10 +170,68 @@ Source: [test_planner.py](../tests/test_planner.py). Run `python -m unittest dis
 | PLAN-022 | `test_planner.PreviewTests.test_unknown_configuration_or_provider_scope_mismatch_stops_before_reads` | Unknown configuration or mismatched Google/CalDAV calendar | Fail before provider read calls. |
 | PLAN-023 | `test_planner.PreviewTests.test_provider_failure_never_creates_partial_plan_or_applied_state` | Destination/source reader raises; source failure must stop destination read | Fixed failure with no plan/mapping/audit writes; no second reader on source failure. |
 
+## DAV: test_caldav.py conditional transport
+
+Run `python -m unittest discover -s tests -p 'test_caldav.py' -v`; expect 29 passing tests. Inputs use local fakes and temporary state with automatic cleanup; no credentials or provider access. Source: [test_caldav.py](../tests/test_caldav.py).
+
+| Case ID | Executable test identifier | Setup / input | Expected result |
+| --- | --- | --- | --- |
+| DAV-024 | `test_caldav.CalDAVTests.test_targeted_get_checks_etag_scope_and_only_404_means_absent` | targeted get checks etag scope and only 404 means absent (fake HTTP) | Scoped GET returns strong-ETag resource; only 404 means absent; auth/redirect/foreign href fail safely. |
+| DAV-025 | `test_caldav.CalDAVTests.test_targeted_get_rejects_missing_weak_etag_and_oversized_data` | targeted get rejects missing weak etag and oversized data (fake HTTP) | GET missing/weak ETag or oversized body fails closed. |
+| DAV-026 | `test_caldav.CalDAVTests.test_put_is_disabled_by_default_and_requires_one_valid_precondition` | put is disabled by default and requires one valid precondition (fake HTTP) | PUT without explicit opt-in or valid create/update precondition sends no request; weak/wildcard/injected ETags rejected. |
+| DAV-027 | `test_caldav.CalDAVTests.test_conditional_create_and_update_put_headers_are_exact` | conditional create and update put headers are exact (fake HTTP) | Create/update send exactly If-None-Match:* or strong If-Match; TLS, private auth, timeouts, redirect/proxy refusal preserved. |
+| DAV-028 | `test_caldav.CalDAVTests.test_put_conflicts_redirects_and_transport_failures_are_sanitized` | put conflicts redirects and transport failures are sanitized (fake HTTP) | 409/412 return conflict subtype; redirects/auth/permission/transport errors sanitized without sentinel payload. |
+| DAV-029 | `test_caldav.CalDAVTests.test_put_refuses_foreign_resource_empty_or_oversized_payload_before_network` | put refuses foreign resource empty or oversized payload before network (fake HTTP) | Foreign URL, empty/nonbytes or oversized payload rejected before network. |
+
+## EXEC: test_executor.py
+
+Run `python -m unittest discover -s tests -p 'test_executor.py' -v`; expect 25 passing tests. Inputs use local fakes and temporary state with automatic cleanup; no credentials or provider access. Source: [test_executor.py](../tests/test_executor.py).
+
+| Case ID | Executable test identifier | Setup / input | Expected result |
+| --- | --- | --- | --- |
+| EXEC-001 | `test_executor.ExecutorTests.test_default_dry_run_has_no_put_intent_run_or_mapping` | default dry run has no put intent run or mapping (fake providers/SQLite) | Default preview proposes create; zero PUT, intents, runs, audit and mappings. |
+| EXEC-002 | `test_executor.ExecutorTests.test_dry_run_then_live_then_repeat_creates_one_resource_and_mapping` | dry run then live then repeat creates one resource and mapping (fake providers/SQLite) | Dry-run then live then repeat yields one PUT/resource/mapping; repeated live unchanged. |
+| EXEC-003 | `test_executor.ExecutorTests.test_source_edit_updates_same_identity_using_saved_etag` | source edit updates same identity using saved etag (fake providers/SQLite) | Source summary edit conditionally updates the same URL/UID using saved ETag and confirmed fingerprint. |
+| EXEC-004 | `test_executor.ExecutorTests.test_destination_edit_after_plan_is_detected_before_put` | destination edit after plan is detected before put (fake providers/SQLite) | Destination ETag changes during targeted GET; conflict before PUT, saved mapping preserved. |
+| EXEC-005 | `test_executor.ExecutorTests.test_412_race_after_fresh_get_never_overwrites_user_edit` | 412 race after fresh get never overwrites user edit (fake providers/SQLite) | Destination changes between GET and PUT; 412 preserves remote edit and saved mapping. |
+| EXEC-006 | `test_executor.ExecutorTests.test_unowned_collision_never_puts_or_adopts` | unowned collision never puts or adopts (fake providers/SQLite) | Unmapped existing resource with ownership markers conflicts; no adoption or PUT. |
+| EXEC-007 | `test_executor.ExecutorTests.test_create_race_after_plan_preserves_foreign_resource` | create race after plan preserves foreign resource (fake providers/SQLite) | Foreign resource appears at create PUT; precondition preserves foreign body and no mapping. |
+| EXEC-008 | `test_executor.ExecutorTests.test_timeout_after_remote_create_is_confirmed_without_second_put` | timeout after remote create is confirmed without second put (fake providers/SQLite) | PUT creates then times out; verified operation readback completes mapping with one PUT. |
+| EXEC-009 | `test_executor.ExecutorTests.test_crash_after_remote_create_recovers_after_database_reopen_without_put` | crash after remote create recovers after database reopen without put (fake providers/SQLite) | Crash after remote create then reopen; pending journal recovers with one PUT/resource, prior run interrupted. |
+| EXEC-010 | `test_executor.ExecutorTests.test_crash_after_remote_update_recovers_new_fingerprint_without_put` | crash after remote update recovers new fingerprint without put (fake providers/SQLite) | Crash after remote update then reopen; old mapping retained until confirmed recovery with no extra PUT. |
+| EXEC-011 | `test_executor.ExecutorTests.test_failed_put_before_apply_retries_only_after_reconciliation` | failed put before apply retries only after reconciliation (fake providers/SQLite) | Uncertain unapplied PUT then rerun; reconcile absence before retrying same intent, one remote copy. |
+| EXEC-012 | `test_executor.ExecutorTests.test_missing_success_etag_or_lost_readback_does_not_commit_mapping` | missing success etag or lost readback does not commit mapping (fake providers/SQLite) | Lost readback after successful PUT; no mapping until later verified readback, no second PUT. |
+| EXEC-013 | `test_executor.ExecutorTests.test_user_edit_after_uncertain_create_blocks_recovery_without_overwrite` | user edit after uncertain create blocks recovery without overwrite (fake providers/SQLite) | User alters created event body before recovery; conflict even with retained markers, no overwrite/adoption. |
+| EXEC-014 | `test_executor.ExecutorTests.test_pending_source_change_or_cancellation_is_not_retried` | pending source change or cancellation is not retried (fake providers/SQLite) | Pending unapplied intent then source cancellation; no retry or mapping, conflict recorded. |
+| EXEC-015 | `test_executor.ExecutorTests.test_pending_retry_limit_is_durable_across_invocations` | pending retry limit is durable across invocations (fake providers/SQLite) | One-attempt budget and repeated failure; durable pending retry-limit with only one PUT. |
+| EXEC-016 | `test_executor.ExecutorTests.test_dry_run_never_recovers_pending_intent_or_advances_mapping` | dry run never recovers pending intent or advances mapping (fake providers/SQLite) | Dry-run after interrupted write leaves journal and mappings untouched and performs no recovery PUT. |
+| EXEC-017 | `test_executor.ExecutorTests.test_missing_cancelled_and_recurring_sources_never_delete_destination` | missing cancelled and recurring sources never delete destination (fake providers/SQLite) | Mapped source missing/cancelled/recurring; destination and mapping preserved, no delete or extra PUT. |
+| EXEC-018 | `test_executor.ExecutorTests.test_duplicate_or_partial_preflight_stops_before_run_and_put` | duplicate or partial preflight stops before run and put (fake providers/SQLite) | Duplicate source IDs or source read failure stops before execution run/PUT. |
+| EXEC-019 | `test_executor.ExecutorTests.test_atomic_finalize_failure_leaves_journal_for_recovery` | atomic finalize failure leaves journal for recovery (fake providers/SQLite) | Applied-audit failure rolls mapping/audit back; retained journal later recovers without duplicate PUT. |
+| EXEC-020 | `test_executor.ExecutorTests.test_successful_intent_is_not_reapplied_after_run_finish_crash` | successful intent is not reapplied after run finish crash (fake providers/SQLite) | Crash after mapping completion before run finish; next invocation unchanged, no reapplication. |
+| EXEC-021 | `test_executor.ExecutorTests.test_one_event_failure_does_not_prevent_other_source_success` | one event failure does not prevent other source success (fake providers/SQLite) | Two sources, first write fails; second applies, failed run reports one pending and one applied. |
+| EXEC-022 | `test_executor.ExecutorTests.test_invalid_live_options_and_report_repr_do_not_expose_private_data` | invalid live options and report repr do not expose private data (fake providers/SQLite) | Invalid dry-run types/budgets rejected; report/item repr omit sentinel private event data. |
+| EXEC-023 | `test_executor.ExecutorTests.test_payload_hash_mismatch_prevents_retry_after_serializer_change` | payload hash mismatch prevents retry after serializer change (fake providers/SQLite) | Pending intent payload reconstruction changes; hash mismatch blocks retry. |
+| EXEC-024 | `test_executor.ExecutorTests.test_source_edit_or_cancellation_after_destination_get_blocks_put` | source edit or cancellation after destination get blocks put (fake providers/SQLite) | Edit or cancel source during destination GET; fresh complete source read blocks stale PUT. |
+| EXEC-025 | `test_executor.ExecutorTests.test_source_revalidation_outage_or_duplicate_blocks_put_and_keeps_intent` | source revalidation outage or duplicate blocks put and keeps intent (fake providers/SQLite) | Fresh source read outage or duplicate IDs leaves pending intent, no PUT or mapping. |
+
+## JOURNAL: test_journal.py
+
+Run `python -m unittest discover -s tests -p 'test_journal.py' -v`; expect 6 passing tests. Inputs use local fakes and temporary state with automatic cleanup; no credentials or provider access. Source: [test_journal.py](../tests/test_journal.py).
+
+| Case ID | Executable test identifier | Setup / input | Expected result |
+| --- | --- | --- | --- |
+| JOURNAL-001 | `test_journal.JournalTests.test_v1_upgrade_preserves_mapping_run_and_append_only_audit` | v1 upgrade preserves mapping run and append only audit (fake providers/SQLite) | Populate v1 with mappings/runs/audit; upgrade preserves all data and append-only protection, adds manual purpose. |
+| JOURNAL-002 | `test_journal.JournalTests.test_intent_requires_active_live_execution_and_valid_hashes` | intent requires active live execution and valid hashes (fake providers/SQLite) | Dry/manual/completed runs and malformed hashes cannot create intents. |
+| JOURNAL-003 | `test_journal.JournalTests.test_pending_uniqueness_identity_immutability_and_retention` | pending uniqueness identity immutability and retention (fake providers/SQLite) | Duplicate pending source, immutable identity edit and journal deletion rejected; attempt limit persists. |
+| JOURNAL-004 | `test_journal.JournalTests.test_cross_configuration_audit_cannot_reference_foreign_intent` | cross configuration audit cannot reference foreign intent (fake providers/SQLite) | Foreign configuration cannot read, complete or audit-reference another configuration’s intent. |
+| JOURNAL-005 | `test_journal.JournalTests.test_local_mapping_changed_blocks_atomic_finalization` | local mapping changed blocks atomic finalization (fake providers/SQLite) | Changed local mapping blocks atomic completion and retains pending intent without additional applied audit. |
+| JOURNAL-006 | `test_journal.JournalTests.test_restart_interrupts_execution_only_and_is_configuration_scoped` | restart interrupts execution only and is configuration scoped (fake providers/SQLite) | Restart interrupts only selected configuration’s execution runs; manual/other runs untouched. |
+
 ## Manual and environment cases
 
-Manual Google cases are in [google-acceptance.md](google-acceptance.md); Nextcloud cases in [nextcloud.md](nextcloud.md); planner cases in [planner.md](planner.md). Four Google account/environment setup cases are in [google-setup.md](google-setup.md). Docker smoke and documentation review cases are in [testing.md](testing.md). Results belong in a dated [execution record](test-evidence.md), not as permanent PASS labels in this catalogue.
+Manual Google cases are in [google-acceptance.md](google-acceptance.md); Nextcloud cases in [nextcloud.md](nextcloud.md); planner cases in [planner.md](planner.md); execution cases EXEC-UAT-01–07 in [execution.md](execution.md). Four Google account/environment setup cases are in [google-setup.md](google-setup.md). Docker smoke and documentation review cases are in [testing.md](testing.md). Results belong in a dated [execution record](test-evidence.md), not as permanent PASS labels in this catalogue.
 
 ## Explicit coverage limits
 
-Fake OAuth tests do not establish that a real tenant permits consent, Google has verified an app, all account classes work, or production is ready. Fake pagination does not establish a point-in-time Google snapshot. Windows/network filesystem behavior, real token expiry under each tenant, Nextcloud interoperability, provider writes, conflict resolution and full sync recovery have not been accepted here. Add documented cases with those features; record current unavailable scenarios as Not run or Not applicable with a reason, never silently passed.
+Fake OAuth tests do not establish that a real tenant permits consent, Google has verified an app, all account classes work, or production is ready. Fake pagination does not establish a point-in-time Google snapshot. Conditional writes/recovery are verified against fakes only. Windows/network filesystem behavior, real token expiry under each tenant, Nextcloud write interoperability, conflict resolution and production worker recovery have not been accepted here. Record unavailable live scenarios as Not run or Not applicable with a reason, never silently passed.

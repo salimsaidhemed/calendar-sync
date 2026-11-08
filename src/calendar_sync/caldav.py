@@ -30,6 +30,10 @@ class CalDAVError(RuntimeError):
     pass
 
 
+class CalDAVPreconditionError(CalDAVError):
+    pass
+
+
 @dataclass(frozen=True, repr=False)
 class CalendarResource:
     href: str
@@ -267,3 +271,65 @@ class CalDAVCalendar:
             raise CalDAVError('caldav_secret_missing') from None
         except Exception:
             raise CalDAVError('caldav_invalid_or_incomplete_read') from None
+
+    def get_resource(self, href):
+        try:
+            target = self._href(href)
+            with quiet_network(), requests.Session() as session:
+                session.trust_env = False
+                with session.get(target, auth=(self.username, _password(self.password_file)),
+                                 timeout=(5, 30), allow_redirects=False, verify=True, stream=True) as response:
+                    if response.status_code == 404:
+                        return None
+                    if 300 <= response.status_code < 400:
+                        raise CalDAVError('caldav_redirect_rejected')
+                    if response.status_code != 200:
+                        code = {401: 'caldav_authentication_failed', 403: 'caldav_permission_denied'}.get(
+                            response.status_code, 'caldav_resource_read_failed')
+                        raise CalDAVError(code)
+                    body = bytearray()
+                    for chunk in response.iter_content(chunk_size=65536):
+                        body.extend(chunk)
+                        if len(body) > self.max_bytes:
+                            raise CalDAVError('caldav_response_limit')
+                    return _resource(target, response.headers.get('ETag'), bytes(body).decode('utf-8'))
+        except CalDAVError:
+            raise
+        except requests.exceptions.SSLError:
+            raise CalDAVError('caldav_tls_failed') from None
+        except requests.exceptions.Timeout:
+            raise CalDAVError('caldav_timeout') from None
+        except Exception:
+            raise CalDAVError('caldav_resource_read_failed') from None
+
+    def put_resource(self, href, payload, *, create=False, expected_etag=None, allow_write=False):
+        if allow_write is not True or type(create) is not bool:
+            raise CalDAVError('caldav_write_not_enabled')
+        if (create and expected_etag is not None) or (not create and (
+            not isinstance(expected_etag, str) or not re.fullmatch(r'"[^"\x00-\x20\x7f]*"', expected_etag)
+        )):
+            raise CalDAVError('caldav_write_precondition_required')
+        if not isinstance(payload, bytes) or not payload or len(payload) > self.max_bytes:
+            raise CalDAVError('caldav_invalid_write_payload')
+        try:
+            target = self._href(href)
+            headers = {'Content-Type': 'text/calendar; charset=utf-8'}
+            headers['If-None-Match' if create else 'If-Match'] = '*' if create else expected_etag
+            with quiet_network(), requests.Session() as session:
+                session.trust_env = False
+                with session.put(target, data=payload, headers=headers,
+                                 auth=(self.username, _password(self.password_file)),
+                                 timeout=(5, 30), allow_redirects=False, verify=True, stream=True) as response:
+                    if response.status_code in {200, 201, 204}:
+                        return
+                    if response.status_code in {409, 412}:
+                        raise CalDAVPreconditionError('caldav_write_conflict')
+                    if 300 <= response.status_code < 400:
+                        raise CalDAVError('caldav_redirect_rejected')
+                    code = {401: 'caldav_authentication_failed', 403: 'caldav_permission_denied',
+                            404: 'caldav_calendar_not_found'}.get(response.status_code, 'caldav_write_uncertain')
+                    raise CalDAVError(code)
+        except CalDAVError:
+            raise
+        except Exception:
+            raise CalDAVError('caldav_write_uncertain') from None
