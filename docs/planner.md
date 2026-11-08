@@ -14,7 +14,7 @@ python -m unittest discover -s tests -v
 python -m pip check
 ```
 
-Expected: 23 planner/preview tests, 101 total tests, 101 discovered test IDs documented once, and no broken dependencies. [PLAN-001–023](test-cases.md#plan-test_plannerpy) describe inputs/expected results. Tests use local dictionaries, generated iCalendar, fake readers and temporary SQLite. They require no credentials or provider access.
+Expected: 23 planner/preview tests, 104 total tests, 104 discovered test IDs documented once, and no broken dependencies. [PLAN-001–023](test-cases.md#plan-test_plannerpy) describe inputs/expected results. Tests use local dictionaries, generated iCalendar, fake readers and temporary SQLite. They require no credentials or provider access.
 
 ## Inputs and deterministic identity
 

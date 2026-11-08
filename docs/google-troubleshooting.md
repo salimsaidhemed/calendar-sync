@@ -24,7 +24,7 @@ python -m unittest discover -s tests -p 'test_google_calendar.py' -v
 python -m unittest discover -s tests -v
 ```
 
-Expected: 13 calendar adapter tests and 101 total tests pass. Fake responses exercise 400/401/403/404/redirect classification, legacy and modern disabled-service/scope reasons, unknown reasons, malformed JSON, no retries for permanent failures and redaction of sentinel secrets.
+Expected: 13 calendar adapter tests and 104 total tests pass. Fake responses exercise 400/401/403/404/redirect classification, legacy and modern disabled-service/scope reasons, unknown reasons, malformed JSON, no retries for permanent failures and redaction of sentinel secrets.
 
 ## User acceptance: retry the failing read
 

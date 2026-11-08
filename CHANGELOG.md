@@ -4,6 +4,7 @@
 
 ### Changed
 
+- CalDAV failures now distinguish connection, timeout, interrupted stream, forbidden/malformed XML and iCalendar parsing using fixed, secret-free diagnostic codes.
 - Added an explicit loopback-only HTTP test option for CalDAV, with strict boolean opt-in and matching origin; HTTPS remains mandatory by default and non-loopback HTTP is refused.
 - Google UAT fixture checks exclude cancelled records while still requiring exactly three active test events; the adapter continues returning cancellation markers.
 - Calendar read failures distinguish disabled API, insufficient scope, rejected token, calendar access and rejected redirects using fixed diagnostic codes without exposing provider payloads.
