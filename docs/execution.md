@@ -1,6 +1,6 @@
 # Conditional execution and recovery
 
-Issue #13 adds a library entry point, `calendar_sync.executor.execute_sync(store, configuration_id, google, caldav)`. It returns a dry-run report by default. `report.plan.counts()` describes proposals; `report.counts()` describes execution outcomes and is empty/zero in dry-run. No run, audit, mapping or intent is recorded by dry-run, including when recovery is pending. The CLI/Compose entry point remains offline; the polling worker is a later feature.
+Issue #13 adds a library entry point, `calendar_sync.executor.execute_sync(store, configuration_id, google, caldav)`. It returns a dry-run report by default. `report.plan.counts()` describes proposals; `report.counts()` describes execution outcomes and is empty/zero in dry-run. No run, audit, mapping or intent is recorded by dry-run, including when recovery is pending. The bare CLI/image remains offline; [the worker](worker.md) explicitly enables polling and Compose integration.
 
 Pass the literal keyword `dry_run=False` to enable Nextcloud writes. Google remains read-only. Complete provider reads, explicit matching calendar identities and deterministic destination identities are required. Creates use `If-None-Match: *`; updates revalidate actual content/ownership and the saved ETag, then send `If-Match`. HTTP 409/412 conflicts never cause unconditional retries. See [HTTP conditional semantics](https://www.rfc-editor.org/rfc/rfc9110.html#section-13.1) and [CalDAV resource creation](https://www.rfc-editor.org/rfc/rfc4791.html#section-5.3.2).
 
@@ -11,9 +11,9 @@ Pass the literal keyword `dry_run=False` to enable Nextcloud writes. Google rema
 3. Save an immutable write intent in SQLite before network mutation. It records an operation UUID, deterministic URL/UID, desired fingerprint, payload hash, fixed serialization timestamp and expected baseline. It contains no event body or credential contents.
 4. GET the exact scoped URL. An existing resource is accepted as a completed operation only when ownership, source identity, real normalized content, desired fingerprint, strong ETag and that operation's UUID all match a previously attempted intent. A bare matching UID or ownership marker never permits adoption.
 5. Before an actual PUT, re-read the complete Google calendar and normalize the source again. Changed, cancelled, missing or unsupported sources conflict; failed/ambiguous reads leave the intent pending. Reconstructed bytes must match the saved payload hash. Persist the attempt increment, then send one conditional PUT.
-6. Read back the destination even if the PUT times out or its response is lost. Only verified content/operation/ETag permits one atomic transaction completing the mapping, applied audit and journal. Otherwise retain pending state or record a conflict, preserving the previous mapping.
+6. Read back the destination even if the PUT times out or its response is lost (rate-limited responses defer readback to a later cycle). Only verified content/operation/ETag permits one atomic transaction completing the mapping, applied audit and journal. Otherwise retain pending state or record a conflict, preserving the previous mapping.
 
-At most one PUT per intent per invocation; default total budget is three persisted attempts, configurable through `max_put_attempts=1..10`. Exhausted intents remain pending and still allow readback recovery; raising the limit is an explicit operator decision. There is no blind sleep/retry loop for writes. Network failures affect that event; unrelated events may still apply. Conflict/pending outcomes make the run `failed`; skipped unsupported/missing inputs alone do not. Exceptions before/after a run are separately surfaced with fixed codes.
+At most one PUT per intent per invocation; default total budget is three persisted attempts, configurable through `max_put_attempts=1..10`. Exhausted intents remain pending and still allow readback recovery; raising the limit is an explicit operator decision. There is no blind sleep/retry loop for writes. Network failures affect that event; unrelated events may still apply. Provider rate-limit hints pause remaining events until a later cycle. Conflict/pending outcomes make the run `failed`; skipped unsupported/missing inputs alone do not. Exceptions before/after a run are separately surfaced with fixed codes. Optional cooperative shutdown checks prevent starting another event/PUT, preserve an in-flight write confirmation and mark an interrupted run.
 
 A crash after remote create/update but before local commit leaves a durable intent. Re-running live execution against the same database reconciles it without a duplicate PUT when readback matches. A crash before sending consumes an attempt conservatively. Dry-run cannot repair state. If the source changed while an already-applied operation was awaiting confirmation, recovery can save that confirmed older baseline; its next source update waits until a later invocation.
 
@@ -37,7 +37,7 @@ python scripts/check_test_catalogue.py
 python -m unittest discover -s tests -v
 ```
 
-Expected: 25 executor, 6 journal, 29 CalDAV and 141 total tests pass; 141 tests documented exactly once. EXEC/JOURNAL/DAV rows in [the catalogue](test-cases.md) document every scenario and subcase. Temporary databases/fake calendars are automatically cleaned up. No live calendar is modified by these tests.
+Expected: 30 executor, 6 journal, 31 CalDAV and 167 total tests pass; 167 tests documented exactly once. EXEC/JOURNAL/DAV rows in [the catalogue](test-cases.md) document every scenario and subcase. Temporary databases/fake calendars are automatically cleaned up. No live calendar is modified by these tests.
 
 ## Acceptance cases
 

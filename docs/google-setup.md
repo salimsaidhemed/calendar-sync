@@ -2,7 +2,7 @@
 
 This guide covers personal Google accounts (including non-Workspace Google accounts), Google Workspace accounts, test environments and production authorization. Reviewed against the linked Google documentation on 2026-11-07. Console wording can change; the selected Cloud project, OAuth client, account and calendar must stay consistent.
 
-**Current capability:** local Desktop OAuth authorization and read-only Google access, Nextcloud adapter and opt-in executor library. The continuous sync worker and production deployment wiring are not implemented. Preparing production authorization does not make the scaffold a production sync service; the default CLI stays offline. Disposable live executor acceptance is documented in [execution.md](execution.md).
+**Current capability:** local Desktop OAuth authorization and read-only Google access, Nextcloud adapter and opt-in executor library. [Continuous worker and mounted-credential setup](worker.md) is implemented; production operations/release acceptance remains under #16/#14. Preparing production authorization does not make the scaffold a production sync service; the default CLI stays offline. Disposable live executor acceptance is documented in [execution.md](execution.md).
 
 ## Choose the account and environment
 
@@ -134,7 +134,7 @@ After authorization, transfer production credentials through a protected channel
 
 Do not keep reauthorizing to debug normal reads: repeated grants can invalidate older tokens. After switching environment/client/audience, create a fresh grant deliberately and retire only the old environment's token when safe. Revocation in Google can affect grants beyond a single local file; do not use production grant revocation as UAT cleanup. Rotating/deleting a client requires a planned reauthorization and rollback process.
 
-The current Compose service is an offline scaffold. Before any production sync rollout, the remaining engine/operations issues must supply provider integration, persistent SQLite state, ownership checks, dry-run plan review, conflict handling, health monitoring, backups, restart policy and rollback instructions. Until then, the production smoke above tests Google read authorization only. Never set a hypothetical environment variable to bypass the CLI's live-sync refusal.
+The Compose service now starts [the continuous worker](worker.md) with dry-run enabled. Provider integration, persistent state, ownership/conflict checks, health and restart policy are implemented; full operational recovery/retention instructions and live release acceptance remain under #16/#14. The production smoke above tests only Google read authorization. Prepare mounted credentials, review a complete dry-run and complete the separate worker/deployment acceptance before any production writes.
 
 ## Setup acceptance and evidence
 
