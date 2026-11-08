@@ -1,6 +1,6 @@
 # Dry-run planner and ownership checks
 
-Issue #12 adds a pure planner and optional read-only provider preview. It never writes Google/Nextcloud events, deletes resources, adopts existing events, creates run/audit rows or advances applied mappings. It does not enable the worker or a live CLI mode. Default `calendar-sync` behavior remains offline; execution/conditional writes and crash reconciliation are issue #13.
+Issue #12 adds a pure planner and optional read-only provider preview. It never writes Google/Nextcloud events, deletes resources, adopts existing events, creates run/audit rows or advances applied mappings. It does not enable the worker or a live CLI mode. Default `calendar-sync` behavior remains offline; issue #13 adds the separate [executor library](execution.md).
 
 ## Unit tests and case mapping
 
@@ -14,7 +14,7 @@ python -m unittest discover -s tests -v
 python -m pip check
 ```
 
-Expected: 23 planner/preview tests, 104 total tests, 104 discovered test IDs documented once, and no broken dependencies. [PLAN-001–023](test-cases.md#plan-test_plannerpy) describe inputs/expected results. Tests use local dictionaries, generated iCalendar, fake readers and temporary SQLite. They require no credentials or provider access.
+Expected: 23 planner/preview tests, 141 total tests, 141 discovered test IDs documented once, and no broken dependencies. [PLAN-001–023](test-cases.md#plan-test_plannerpy) describe inputs/expected results. Tests use local dictionaries, generated iCalendar, fake readers and temporary SQLite. They require no credentials or provider access.
 
 ## Inputs and deterministic identity
 
@@ -47,7 +47,7 @@ For a mapped event, the planner requires matching deterministic href/UID, an unc
 
 Markers are not cryptographic signatures or authorization. They are insufficient without a saved configuration-scoped mapping and matching baseline/ETag. After database loss, or a remote create that happened before a mapping was committed, the existing resource conflicts even if its markers look valid. No automatic adoption/recovery is implemented here. Preserve the data and use the future explicit reconciliation flow. Do not delete remote events simply to make a create plan succeed.
 
-Plans are stale observations, not write capabilities. Future issue #13 must validate ownership again, use `If-None-Match: *` for creates and `If-Match` with a freshly verified baseline for updates, and handle uncertain network results before retrying. Never execute based only on a plan's desired event or UID.
+Plans are stale observations, not write capabilities. The executor validates ownership again, uses `If-None-Match: *` for creates and `If-Match` with a freshly verified baseline for updates, and reconciles uncertain results before retrying. It builds its own fresh plan; never execute based only on a saved plan's desired event or UID.
 
 ## Read-only SQLite/provider preview
 

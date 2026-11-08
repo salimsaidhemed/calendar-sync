@@ -39,7 +39,7 @@ class StateTests(unittest.TestCase):
             store.finish_run('primary', run_id, 'succeeded')
         self.assertEqual(self.path.stat().st_mode & 0o777, 0o600)
         with StateStore(self.path) as store:
-            self.assertEqual(store.connection.execute('PRAGMA user_version').fetchone()[0], 1)
+            self.assertEqual(store.connection.execute('PRAGMA user_version').fetchone()[0], len(MIGRATIONS))
             self.assertEqual(store.connection.execute('PRAGMA foreign_keys').fetchone()[0], 1)
             self.assertEqual(store.get_mapping('primary', 'source')['destination_uid'], 'uid')
             self.assertEqual(len(store.list_audit('primary')), 2)
@@ -96,7 +96,7 @@ class StateTests(unittest.TestCase):
         next_version = MIGRATIONS + (('CREATE TABLE migration_probe(id INTEGER PRIMARY KEY)',),)
         with patch('calendar_sync.state.MIGRATIONS', next_version):
             with StateStore(self.path) as store:
-                self.assertEqual(store.connection.execute('PRAGMA user_version').fetchone()[0], 2)
+                self.assertEqual(store.connection.execute('PRAGMA user_version').fetchone()[0], len(next_version))
                 self.assertEqual(store.connection.execute(
                     'SELECT id FROM configurations'
                 ).fetchone()[0], 'primary')

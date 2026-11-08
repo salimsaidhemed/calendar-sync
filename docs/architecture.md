@@ -1,6 +1,6 @@
 # v0.1.0 implementation plan
 
-This document specifies the target engine architecture. SQLite state, provider read/normalization libraries and the dry-run planner are implemented; write execution and continuous worker wiring remain future work. See the feature guides and catalogue for verified behavior.
+This document specifies the target engine architecture. SQLite state, provider libraries, planner and opt-in conditional execution/recovery are implemented; continuous worker wiring remains future work. See [execution.md](execution.md) and the catalogue for verified behavior.
 
 ## Direction and ownership
 
@@ -34,4 +34,4 @@ Support ordinary single events only initially, including all-day exclusive end d
 
 ## Test gates before declaring v0.1.0 complete
 
-Fake-provider tests must cover repeated runs, crash after remote create before local commit, create collisions, ETag conflicts, incomplete pagination, provider outages, deleted source events, recurring events, DST/all-day dates, dry-run followed by live run, configuration isolation, token refresh and redaction. Current coverage is enumerated in test-cases.md; write-execution/crash-reconciliation gates remain future requirements.
+Fake-provider tests cover repeated runs, crash after remote create/update before local commit, create collisions, ETag conflicts, incomplete pagination, provider outages, deleted source events, recurring events, DST/all-day dates, dry-run followed by live run, configuration isolation, token refresh and redaction. Current coverage is enumerated in [test-cases.md](test-cases.md). Live acceptance and worker/deployment gates remain separate requirements.

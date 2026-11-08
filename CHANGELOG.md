@@ -11,6 +11,9 @@
 
 ### Added
 
+- Opt-in conditional Nextcloud executor with complete preflight, ownership revalidation, create/update preconditions, confirmed readback and no delete path; library dry-run remains the default and the CLI stays offline.
+- SQLite schema v2 durable write intents, attempt limits, operation-scoped audit reasons and atomic mapping/audit/journal completion; recovery reconciles ambiguous creates/updates before retrying.
+- Documented fake-provider crash/race tests, populated v1 upgrade tests and disposable-calendar execution acceptance steps. Live acceptance remains separate from automated results.
 - Pure configuration-scoped dry-run planner with deterministic identities, six proposal outcomes and strict ownership/baseline/ETag checks; no automatic adoption, deletes or provider writes.
 - Read-only configuration/mapping snapshots and provider preview orchestration that do not create runs/audit rows or advance applied mappings.
 - 23 documented planner/preview tests and complete offline/live-read acceptance instructions, including lost-state collisions, missing/cancelled sources and destination edits.
@@ -33,4 +36,4 @@
 - Architecture acceptance criteria for secure OAuth, SQLite mappings, duplicate prevention and conflict handling.
 - Five delivery milestones, linked epic/task roadmap, contribution workflow and PR/issue templates.
 
-Calendar synchronization is not yet implemented. No v0.1.0 release has been published.
+Continuous synchronization and production worker deployment are not yet implemented. No v0.1.0 release has been published.

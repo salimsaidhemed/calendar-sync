@@ -2,7 +2,7 @@
 
 The dry-run planner uses `planning_snapshot(configuration_id)` to obtain selected calendar fields and scoped applied mappings in one read transaction. It returns copied dictionaries, excludes credential references/other configurations, and does not add runs, audit entries or mappings. See [planner.md](planner.md) for preview integration and ownership checks.
 
-Implemented for issue #10. This is a library for the upcoming worker and provider adapters. The CLI still does not open a database or sync events.
+Implemented for issue #10 and extended with the issue #13 execution journal. The CLI still does not open a database or sync events.
 
 ## Storage and lifetime
 
@@ -29,15 +29,20 @@ Configuration creation is insert-only. A duplicate ID is rejected, not silently 
 
 `schema.py` holds ordered migrations. `PRAGMA user_version` records the schema version. Opening the store enables foreign keys and synchronous FULL, then applies pending migrations in one explicit immediate transaction. A failed migration rolls back both schema changes and the version. A database newer than this application is rejected without downgrade. Do not edit applied migrations; append a new version and test upgrades with existing data.
 
+Current schema is v2. Upgrading a populated v1 preserves configurations, mappings, runs and append-only audit entries; existing runs get purpose `manual`. Back up before opening with the new version. JOURNAL-001 exercises that exact upgrade. An older application must not reopen a v2 database.
+
 - Configurations store owner and selected calendars.
 - Credential references store one absolute secret-file path per provider per configuration.
-- Runs record dry-run status, lifecycle and UTC timestamps.
+- Runs record dry-run status, lifecycle, UTC timestamps and purpose (`manual` or `execution`).
 - Mappings have a configuration/source primary key, unique destination href and UID per configuration, applied source fingerprint, destination ETag and applying run ID.
 - Audit entries have configuration/run foreign keys, action/outcome codes, optional source ID and UTC timestamp. They omit event bodies and free-form errors. Event IDs, calendar IDs and paths can still be sensitive; protect the volume and backups.
+- Write intents retain immutable operation UUID, scoped source/destination identity, fingerprints, serialized-payload hash, stamp, expected baseline ETag/fingerprint, attempt count and pending/applied/conflict outcome. Event bodies and credentials are not stored. A partial unique index allows only one pending intent per source/configuration. Audit records add fixed reason codes and a same-configuration operation reference.
+
+`prepare_intent` requires a live execution run and compares the local mapping baseline. The executor commits an intent and an attempt increment before a PUT. `complete_intent` rechecks the local baseline and commits mapping, applied audit and terminal intent together after verified provider readback. Database triggers protect intent identity, retention, active-live insertion and audit operation scope. These are trusted internal APIs: the database cannot itself validate remote ownership or success. Completed/conflicted journal rows are retained indefinitely pending a future retention policy.
 
 `record_applied` accepts only an active live run. It writes the mapping and applied audit record in one transaction; either both commit or neither does. A mapping's destination identity cannot be changed through this API. Database triggers also reject mapping inserts/updates tied to dry-run or completed runs. Repeated updates retain one mapping per source. The execution layer must only call this after verifying remote success, ownership and ETags; the state library cannot verify remote writes or prevent duplicates at the provider itself.
 
-`append_audit` can record planned, skipped or failed actions but rejects `applied`; applied records must accompany mapping writes. `finish_run` records a terminal status and its audit entry atomically. Completed runs reject further repository writes. After a crash an unfinished run remains `running`; future worker recovery must reconcile uncertain remote writes before finishing it as interrupted. No automatic recovery is attempted here.
+`append_audit` can record planned, skipped or failed actions but rejects `applied`; applied records must accompany mapping writes. `finish_run` records a terminal status and its audit entry atomically. Completed runs reject further repository writes. A live executor invocation marks prior running execution runs interrupted, then reconciles their pending intents under its new run. Manual or other-configuration runs are untouched. Dry-run never performs recovery or records history. See [execution.md](execution.md).
 
 Audit updates and deletes are rejected by triggers. No retention cleanup is implemented yet: define a documented retention/export policy and migration before production use. Append-only protection is an application invariant, not a tamper-proof security boundary against someone who can edit the database or schema.
 
@@ -53,6 +58,6 @@ The `transaction` context commits on success and rolls back on exceptions. Neste
 
 The library uses SQLite's default rollback journal, not WAL. For a simple offline backup, stop every database writer, close the store, and copy the database to protected storage. If backing up live, use SQLite's backup API from the owning process; copying an active database alone is unsafe. An interrupted transaction can leave a hot journal: retain database and journal together for SQLite recovery rather than deleting the journal. Do not delete or replace a live database or its lock file.
 
-Restore while all clients are stopped, preserve restrictive directory/file permissions, then open with the same or newer compatible application. Migrations run automatically on the next library open. Back up before upgrading. Downgrading a newer schema is unsupported. The lock file is not state and need not be backed up; existing audit entries and unfinished run history are retained. Lost mappings require ownership-aware remote reconciliation in the future engine; restoring an empty database is not permission to recreate every destination event.
+Restore while all clients are stopped, preserve restrictive directory/file permissions, then open with the same or newer compatible application. Migrations run automatically on the next library open. Back up before upgrading. Downgrading a newer schema is unsupported. The lock file is not state and need not be backed up; existing audit entries, write intents and unfinished run history are retained. Pending intents allow verified recovery; without a matching journal/mapping, an existing resource is a conflict and cannot be adopted. Restoring an empty database is not permission to recreate every destination event. Preserve stable configuration/calendar IDs; changing them changes deterministic identities and can create independent copies.
 
-No delete/sync execution path, provider client, authorization UI, credential refresh, automatic retention or resumption worker is introduced by this change.
+No delete path, authorization UI, automatic retention or continuous resumption worker is provided by the state library.

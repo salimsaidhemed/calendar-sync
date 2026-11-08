@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import hashlib
 import json
 import re
+from uuid import UUID
 from urllib.parse import urlsplit
 
 from icalendar import Calendar
@@ -16,6 +17,7 @@ from calendar_sync.events import NormalizedEvent, normalize_google_event, serial
 OWNER = 'X-TCADC-SYNC-OWNER'
 SOURCE = 'X-TCADC-SYNC-SOURCE'
 BASELINE = 'X-TCADC-SYNC-FINGERPRINT'
+OPERATION = 'X-TCADC-SYNC-OPERATION'
 ACTIONS = ('create', 'update', 'unchanged', 'conflict', 'unsupported', 'missing')
 
 
@@ -123,13 +125,17 @@ class SyncPlan:
         return {action: counts[action] for action in ACTIONS}
 
 
-def serialize_owned_event(context, event, *, stamp):
+def serialize_owned_event(context, event, *, stamp, operation_id=None):
     identity = event_identity(context, event.source_id)
     calendar = Calendar.from_ical(serialize_event(event, identity.uid, stamp=stamp))
     component = calendar.walk('VEVENT')[0]
     for name, value in ((OWNER, context.owner_marker()), (SOURCE, identity.source_marker),
                         (BASELINE, event.fingerprint())):
         component.add(name, value)
+    if operation_id is not None:
+        if not isinstance(operation_id, str) or str(UUID(operation_id)) != operation_id:
+            raise PlanningError('planner_invalid_operation_id')
+        component.add(OPERATION, operation_id)
     return calendar.to_ical()
 
 
@@ -146,8 +152,10 @@ def _owned_baseline(context, identity, mapping, resource):
             return False
         event = components[0]
         allowed = {'UID', 'DTSTAMP', 'DTSTART', 'DTEND', 'SUMMARY', 'DESCRIPTION', 'LOCATION',
-                   'CREATED', 'LAST-MODIFIED', 'SEQUENCE', OWNER, SOURCE, BASELINE}
+                   'CREATED', 'LAST-MODIFIED', 'SEQUENCE', OWNER, SOURCE, BASELINE, OPERATION}
         if set(event.keys()) - allowed or any(isinstance(value, list) for value in event.values()):
+            return False
+        if OPERATION in event and str(UUID(str(event[OPERATION]))) != str(event[OPERATION]):
             return False
         if (str(event.get('UID', '')) != identity.uid
                 or str(event.get(OWNER, '')) != context.owner_marker()
@@ -160,6 +168,22 @@ def _owned_baseline(context, identity, mapping, resource):
         return baseline.fingerprint() == mapping.source_fingerprint
     except Exception:
         return False
+
+
+def owned_resource_matches(context, source_id, fingerprint, resource, *, operation_id=None):
+    if not isinstance(resource, CalendarResource) or resource.skip_reason is not None or not _etag(resource.etag):
+        return False
+    identity = event_identity(context, source_id)
+    if resource.href != identity.href or resource.uid != identity.uid:
+        return False
+    mapping = MappingSnapshot(context.configuration_id, source_id, identity.href, identity.uid,
+                               fingerprint, resource.etag)
+    if not _owned_baseline(context, identity, mapping, resource):
+        return False
+    if operation_id is not None:
+        component = Calendar.from_ical(resource.data).walk('VEVENT')[0]
+        return str(component.get(OPERATION, '')) == operation_id
+    return True
 
 
 def build_plan(context, source_events, destination_resources, mappings=(), *,
