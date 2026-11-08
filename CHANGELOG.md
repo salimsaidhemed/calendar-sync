@@ -4,6 +4,9 @@
 
 ### Changed
 
+- Compose now explicitly starts the continuous worker, with mounted credential directories, persistent state, health checks, 120-second stop grace and restart unless stopped; the bare image/CLI remains an offline check.
+- Main ruleset now requires the verified GitHub Actions test check and an up-to-date branch, preserving existing PR/deletion/force-push safeguards. Documented the current public visibility and unresolved shared-author/owner approval boundary (#8).
+- Google/CalDAV reads support cooperative shutdown; provider Retry-After hints defer worker cycles. SQLite fixture connections now close explicitly to avoid Python 3.14 resource warnings.
 - CalDAV failures now distinguish connection, timeout, interrupted stream, forbidden/malformed XML and iCalendar parsing using fixed, secret-free diagnostic codes.
 - Added an explicit loopback-only HTTP test option for CalDAV, with strict boolean opt-in and matching origin; HTTPS remains mandatory by default and non-loopback HTTP is refused.
 - Google UAT fixture checks exclude cancelled records while still requiring exactly three active test events; the adapter continues returning cancellation markers.
@@ -11,6 +14,8 @@
 
 ### Added
 
+- Continuous worker/one-cycle and health CLI commands with strict configuration, dry-run defaults, lifetime state locking, private atomic health snapshots, jittered polling/backoff and graceful SIGTERM/SIGINT handling.
+- Worker/signal/rate-limit/health tests, offline real-engine container smoke, Compose validation in CI and complete worker setup/acceptance cases.
 - Opt-in conditional Nextcloud executor with complete preflight, ownership revalidation, create/update preconditions, confirmed readback and no delete path; library dry-run remains the default and the CLI stays offline.
 - SQLite schema v2 durable write intents, attempt limits, operation-scoped audit reasons and atomic mapping/audit/journal completion; recovery reconciles ambiguous creates/updates before retrying.
 - Documented fake-provider crash/race tests, populated v1 upgrade tests and disposable-calendar execution acceptance steps. Live acceptance remains separate from automated results.
@@ -36,4 +41,4 @@
 - Architecture acceptance criteria for secure OAuth, SQLite mappings, duplicate prevention and conflict handling.
 - Five delivery milestones, linked epic/task roadmap, contribution workflow and PR/issue templates.
 
-Continuous synchronization and production worker deployment are not yet implemented. No v0.1.0 release has been published.
+Continuous synchronization is implemented; complete production operations/acceptance remain under #16/#14. No v0.1.0 release has been published.

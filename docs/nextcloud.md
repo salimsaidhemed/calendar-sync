@@ -1,6 +1,6 @@
 # Nextcloud CalDAV reads and event conversion
 
-Issue #11 provides explicit-calendar CalDAV reads at `https://nextcloud.tcadc.com`, plus pure event normalization/serialization. Issue #13 adds scoped targeted GET and conditional PUT for the [executor](execution.md). PUT is refused unless `allow_write=True`; creates require `If-None-Match: *`, updates require a strong `If-Match`. Transport alone does not authorize ownership: use the executor. No POST/DELETE, discovery by display name, automatic worker or invitation sending is provided. The default CLI stays offline; all read acceptance below remains read-only.
+Issue #11 provides explicit-calendar CalDAV reads at `https://nextcloud.tcadc.com`, plus pure event normalization/serialization. Issue #13 adds scoped targeted GET and conditional PUT for the [executor](execution.md). PUT is refused unless `allow_write=True`; creates require `If-None-Match: *`, updates require a strong `If-Match`. Transport alone does not authorize ownership: use the executor. No POST/DELETE, discovery by display name or invitation sending is provided. [The worker](worker.md) supplies opt-in polling separately. The default CLI stays offline; all read acceptance below remains read-only.
 
 ## Install and run unit tests
 
@@ -17,7 +17,7 @@ python -m unittest discover -s tests -v
 python -m pip check
 ```
 
-Expected: 29 CalDAV tests (DAV-001–029), 13 normalization tests (NORM-001–013), 141 documented/discovered tests and 141 passing tests. No credentials, Nextcloud or Google requests are needed. [The catalogue](test-cases.md) lists each input/expected result. HTTP/XML/iCalendar fixtures are local test constants; Google conversion fixtures are local dictionaries.
+Expected: 31 CalDAV tests (DAV-001–031), 13 normalization tests (NORM-001–013), 167 documented/discovered tests and 167 passing tests. No credentials, Nextcloud or Google requests are needed. [The catalogue](test-cases.md) lists each input/expected result. HTTP/XML/iCalendar fixtures are local test constants; Google conversion fixtures are local dictionaries.
 
 ## Set up a dedicated Nextcloud test calendar
 
@@ -249,4 +249,4 @@ Stop test clients, restore permissions, revoke only the dedicated test app passw
 | caldav_partial_response / response_limit / resource_limit | Entire read failed; reduce test dataset or deliberately raise limits where appropriate. No deletion or partial sync. |
 | caldav_invalid_or_incomplete_read / invalid_response / invalid_calendar_data / invalid_etag / duplicate_resource | Report fixed code with server/version context; preserve the failing calendar and do not publish raw data. |
 
-Keep setup/operator, tested commit, environment, NC-UAT case/subcase status and sanitized evidence in [the execution record](test-evidence.md). Conditional writes require separate [execution acceptance](execution.md); destination ownership adoption is refused. Continuous sync, Docker secret mounts and production rollouts remain future work.
+Keep setup/operator, tested commit, environment, NC-UAT case/subcase status and sanitized evidence in [the execution record](test-evidence.md). Conditional writes require separate [execution acceptance](execution.md); destination ownership adoption is refused. Continuous sync and Docker secret mounts are described in [worker.md](worker.md); production rollout acceptance remains under #16/#14.

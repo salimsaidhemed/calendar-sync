@@ -17,6 +17,20 @@ class ExecutionError(RuntimeError):
     pass
 
 
+class ExecutionStopped(ExecutionError):
+    pass
+
+
+def _check_stop(should_stop):
+    if should_stop():
+        raise ExecutionStopped('execution_stopped')
+
+
+def _deferred(provider):
+    value = getattr(provider, 'retry_after_seconds', 0)
+    return type(value) in {int, float} and value > 0
+
+
 @dataclass(frozen=True, repr=False)
 class ExecutionItem:
     source_id: str | None
@@ -51,12 +65,13 @@ def _mapping_matches(store, intent):
     ))
 
 
-def _handle_intent(store, context, intent, run_id, google, caldav, maximum, resources):
+def _handle_intent(store, context, intent, run_id, google, caldav, maximum, resources, should_stop):
     configuration_id = context.configuration_id
     operation_id = intent['id']
     identity = event_identity(context, intent['source_event_id'])
 
     def note(reason, conflict=False):
+        _check_stop(should_stop)
         store.note_intent(configuration_id, operation_id, run_id, reason=reason, conflict=conflict)
         return ExecutionItem(intent['source_event_id'], intent['action'],
                              'conflict' if conflict else 'pending', reason, operation_id)
@@ -107,6 +122,7 @@ def _handle_intent(store, context, intent, run_id, google, caldav, maximum, reso
         return note('payload_reconstruction_changed', True)
     if hashlib.sha256(payload).hexdigest() != intent['payload_hash']:
         return note('payload_reconstruction_changed', True)
+    _check_stop(should_stop)
     if not store.mark_intent_attempt(configuration_id, operation_id, maximum):
         return note('write_retry_limit')
     precondition_failed = False
@@ -116,7 +132,8 @@ def _handle_intent(store, context, intent, run_id, google, caldav, maximum, reso
     except CalDAVPreconditionError:
         precondition_failed = True
     except Exception:
-        pass
+        if _deferred(caldav):
+            return note('write_rate_limited')
     try:
         observed = caldav.get_resource(identity.href)
     except Exception:
@@ -128,10 +145,20 @@ def _handle_intent(store, context, intent, run_id, google, caldav, maximum, reso
     return note('write_not_confirmed')
 
 
-def execute_sync(store, configuration_id, google, caldav, *, dry_run=True, max_put_attempts=3):
+def execute_sync(store, configuration_id, google, caldav, *, dry_run=True, max_put_attempts=3, should_stop=lambda: False):
     if type(dry_run) is not bool or type(max_put_attempts) is not int or not 1 <= max_put_attempts <= 10:
         raise ExecutionError('execution_invalid_options')
-    plan = preview_sync(store, configuration_id, google, caldav)
+    _check_stop(should_stop)
+    google.retry_after_seconds = caldav.retry_after_seconds = 0
+    def read_plan():
+        _check_stop(should_stop)
+        try:
+            return preview_sync(store, configuration_id, google, caldav, should_stop=should_stop)
+        except Exception:
+            _check_stop(should_stop)
+            raise
+    plan = read_plan()
+    _check_stop(should_stop)
     if dry_run:
         return ExecutionReport(True, plan, (), None, 'dry_run')
     store.interrupt_execution_runs(configuration_id)
@@ -144,13 +171,21 @@ def execute_sync(store, configuration_id, google, caldav, *, dry_run=True, max_p
         if pending:
             resources = caldav.list_resources()
             for intent in pending:
+                _check_stop(should_stop)
+                if _deferred(google) or _deferred(caldav):
+                    raise ExecutionError('execution_rate_limited')
                 handled.add(intent['source_event_id'])
                 results.append(_handle_intent(store, context, intent, run_id,
-                    google, caldav, max_put_attempts, resources))
-            plan = preview_sync(store, configuration_id, google, caldav)
+                    google, caldav, max_put_attempts, resources, should_stop))
+            if _deferred(google) or _deferred(caldav):
+                raise ExecutionError('execution_rate_limited')
+            plan = read_plan()
             if plan.context != context:
                 raise ExecutionError('execution_configuration_changed')
         for item in plan.items:
+            _check_stop(should_stop)
+            if _deferred(google) or _deferred(caldav):
+                raise ExecutionError('execution_rate_limited')
             if item.source_id in handled:
                 continue
             if item.action not in {'create', 'update'}:
@@ -177,13 +212,14 @@ def execute_sync(store, configuration_id, google, caldav, *, dry_run=True, max_p
             store.prepare_intent(configuration_id, run_id, values)
             intent = store.get_intent(configuration_id, operation_id)
             results.append(_handle_intent(store, context, intent, run_id, google,
-                                          caldav, max_put_attempts, ()))
+                                          caldav, max_put_attempts, (), should_stop))
         status = 'failed' if any(item.outcome in {'conflict', 'pending'} for item in results) else 'succeeded'
         store.finish_run(configuration_id, run_id, status, reason_code='execution_complete')
         return ExecutionReport(False, plan, tuple(results), run_id, status)
     except Exception as error:
         try:
-            store.finish_run(configuration_id, run_id, 'failed', reason_code='execution_interrupted')
+            store.finish_run(configuration_id, run_id, 'interrupted' if isinstance(error, ExecutionStopped) else 'failed',
+                             reason_code='execution_interrupted')
         except Exception:
             pass
         if isinstance(error, (CalDAVError, PlanningError, ExecutionError)):

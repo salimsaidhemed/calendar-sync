@@ -1,11 +1,14 @@
-"""Explicit-calendar, read-only CalDAV adapter with strict resource boundaries."""
+"""Explicit-calendar CalDAV transport with strict resource boundaries."""
 
 from dataclasses import dataclass
 from datetime import date, datetime
+from email.utils import parsedate_to_datetime
 import ipaddress
+import math
 import os
 import re
 import stat
+import time
 from urllib.parse import quote, unquote, urljoin, urlsplit, urlunsplit
 from xml.etree.ElementTree import ParseError
 
@@ -149,7 +152,7 @@ def _resource(href, etag, text):
 class CalDAVCalendar:
     def __init__(self, calendar_url, username, password_file, *,
                  origin_url='https://nextcloud.tcadc.com', max_bytes=8388608, max_resources=10000,
-                 allow_http_loopback=False):
+                 allow_http_loopback=False, should_stop=lambda: False):
         try:
             if type(allow_http_loopback) is not bool:
                 raise CalDAVError('caldav_invalid_configuration')
@@ -172,10 +175,30 @@ class CalDAVCalendar:
             self.password_file = password_file
             self.max_bytes = max_bytes
             self.max_resources = max_resources
+            self.retry_after_seconds = 0
+            self.should_stop = should_stop
         except CalDAVError:
             raise
         except Exception:
             raise CalDAVError('caldav_invalid_configuration') from None
+
+    def _rate_limit(self, response):
+        if response.status_code not in {429, 503}:
+            return
+        default = 60 if response.status_code == 429 else 0
+        value = response.headers.get('Retry-After', str(default))
+        try:
+            try:
+                seconds = float(value)
+            except ValueError:
+                seconds = parsedate_to_datetime(value).timestamp() - time.time()
+            if not math.isfinite(seconds):
+                raise ValueError()
+            self.retry_after_seconds = max(self.retry_after_seconds, max(0, min(86400, math.ceil(seconds))))
+        except (ValueError, TypeError, OverflowError):
+            self.retry_after_seconds = max(self.retry_after_seconds, default)
+        if response.status_code == 429:
+            raise CalDAVError('caldav_rate_limited')
 
     def _href(self, value):
         safe = _url(value, allow_http_loopback=self.allow_http_loopback)
@@ -232,6 +255,8 @@ class CalDAVCalendar:
     def list_resources(self):
         response_started = False
         try:
+            if self.should_stop():
+                raise CalDAVError('caldav_read_stopped')
             with quiet_network():
                 password = _password(self.password_file)
                 with requests.Session() as session:
@@ -242,6 +267,7 @@ class CalDAVCalendar:
                         headers={'Depth': '1', 'Content-Type': 'application/xml; charset=utf-8'},
                         allow_redirects=False, verify=True, stream=True,
                     ) as response:
+                        self._rate_limit(response)
                         if response.status_code != 207:
                             code = {401: 'caldav_authentication_failed', 403: 'caldav_permission_denied',
                                     404: 'caldav_calendar_not_found', 507: 'caldav_partial_response'}.get(
@@ -252,6 +278,8 @@ class CalDAVCalendar:
                         response_started = True
                         body = bytearray()
                         for chunk in response.iter_content(chunk_size=65536):
+                            if self.should_stop():
+                                raise CalDAVError('caldav_read_stopped')
                             body.extend(chunk)
                             if len(body) > self.max_bytes:
                                 raise CalDAVError('caldav_response_limit')
@@ -279,6 +307,7 @@ class CalDAVCalendar:
                 session.trust_env = False
                 with session.get(target, auth=(self.username, _password(self.password_file)),
                                  timeout=(5, 30), allow_redirects=False, verify=True, stream=True) as response:
+                    self._rate_limit(response)
                     if response.status_code == 404:
                         return None
                     if 300 <= response.status_code < 400:
@@ -320,6 +349,7 @@ class CalDAVCalendar:
                 with session.put(target, data=payload, headers=headers,
                                  auth=(self.username, _password(self.password_file)),
                                  timeout=(5, 30), allow_redirects=False, verify=True, stream=True) as response:
+                    self._rate_limit(response)
                     if response.status_code in {200, 201, 204}:
                         return
                     if response.status_code in {409, 412}:
