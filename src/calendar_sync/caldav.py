@@ -7,8 +7,10 @@ import os
 import re
 import stat
 from urllib.parse import quote, unquote, urljoin, urlsplit, urlunsplit
+from xml.etree.ElementTree import ParseError
 
 from defusedxml import ElementTree
+from defusedxml.common import DefusedXmlException
 from icalendar import Calendar
 import requests
 
@@ -96,7 +98,7 @@ def _status(value):
         raise CalDAVError('caldav_partial_response')
 
 
-def _resource(href, etag, text):
+def _parse_resource(href, etag, text):
     if not etag or not re.fullmatch(r'"[^"\x00-\x20\x7f]*"', etag):
         raise CalDAVError('caldav_invalid_etag')
     calendar = Calendar.from_ical(text)
@@ -129,6 +131,15 @@ def _resource(href, etag, text):
                     or end <= start):
                 reason = 'unsupported_event_time'
     return CalendarResource(href, etag, str(uids[0]), text.encode('utf-8'), reason)
+
+
+def _resource(href, etag, text):
+    try:
+        return _parse_resource(href, etag, text)
+    except CalDAVError:
+        raise
+    except Exception:
+        raise CalDAVError('caldav_invalid_calendar_data') from None
 
 
 class CalDAVCalendar:
@@ -173,7 +184,12 @@ class CalDAVCalendar:
         return resolved
 
     def _parse(self, body):
-        root = ElementTree.fromstring(body, forbid_dtd=True, forbid_entities=True, forbid_external=True)
+        try:
+            root = ElementTree.fromstring(body, forbid_dtd=True, forbid_entities=True, forbid_external=True)
+        except DefusedXmlException:
+            raise CalDAVError('caldav_xml_rejected') from None
+        except ParseError:
+            raise CalDAVError('caldav_xml_invalid') from None
         if root.tag != DAV + 'multistatus' or root.find('.//' + DAV + 'error') is not None:
             raise CalDAVError('caldav_invalid_response')
         if any(child.tag not in {DAV + 'response', DAV + 'responsedescription'} for child in root):
@@ -210,6 +226,7 @@ class CalDAVCalendar:
         return resources
 
     def list_resources(self):
+        response_started = False
         try:
             with quiet_network():
                 password = _password(self.password_file)
@@ -228,6 +245,7 @@ class CalDAVCalendar:
                             if 300 <= response.status_code < 400:
                                 code = 'caldav_redirect_rejected'
                             raise CalDAVError(code)
+                        response_started = True
                         body = bytearray()
                         for chunk in response.iter_content(chunk_size=65536):
                             body.extend(chunk)
@@ -238,6 +256,13 @@ class CalDAVCalendar:
             raise
         except requests.exceptions.SSLError:
             raise CalDAVError('caldav_tls_failed') from None
+        except requests.exceptions.Timeout:
+            raise CalDAVError('caldav_timeout') from None
+        except requests.exceptions.ConnectionError:
+            code = 'caldav_response_interrupted' if response_started else 'caldav_connection_failed'
+            raise CalDAVError(code) from None
+        except (requests.exceptions.ChunkedEncodingError, requests.exceptions.ContentDecodingError):
+            raise CalDAVError('caldav_response_interrupted') from None
         except FileNotFoundError:
             raise CalDAVError('caldav_secret_missing') from None
         except Exception:

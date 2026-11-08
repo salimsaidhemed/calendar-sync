@@ -1,5 +1,7 @@
 # SQLite state library
 
+The dry-run planner uses `planning_snapshot(configuration_id)` to obtain selected calendar fields and scoped applied mappings in one read transaction. It returns copied dictionaries, excludes credential references/other configurations, and does not add runs, audit entries or mappings. See [planner.md](planner.md) for preview integration and ownership checks.
+
 Implemented for issue #10. This is a library for the upcoming worker and provider adapters. The CLI still does not open a database or sync events.
 
 ## Storage and lifetime

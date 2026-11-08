@@ -173,8 +173,38 @@ class CalDAVTests(unittest.TestCase):
             yield value
 
         self.session.request.side_effect = [interrupted()]
-        with self.assertRaisesRegex(CalDAVError, 'caldav_invalid_or_incomplete_read'):
+        with self.assertRaisesRegex(CalDAVError, 'caldav_response_interrupted'):
             self.calendar.list_resources()
+
+    def test_connection_timeout_and_stream_errors_have_safe_distinct_codes(self):
+        for exception, expected in (
+            (requests.exceptions.ConnectionError('SENTINEL_ENDPOINT'), 'caldav_connection_failed'),
+            (requests.exceptions.ConnectTimeout('SENTINEL'), 'caldav_timeout'),
+            (requests.exceptions.ReadTimeout('SENTINEL'), 'caldav_timeout'),
+            (requests.exceptions.ChunkedEncodingError('SENTINEL'), 'caldav_response_interrupted'),
+            (requests.exceptions.ContentDecodingError('SENTINEL'), 'caldav_response_interrupted'),
+        ):
+            self.session.request.side_effect = exception
+            with self.assertRaises(CalDAVError) as caught:
+                self.calendar.list_resources()
+            self.assertEqual(str(caught.exception), expected)
+            self.assertNotIn('SENTINEL', str(caught.exception))
+
+    def test_xml_syntax_and_forbidden_entities_have_safe_distinct_codes(self):
+        for body, expected in (
+            (b'<broken SENTINEL', 'caldav_xml_invalid'),
+            (b'<!DOCTYPE d:multistatus [<!ENTITY secret SYSTEM "file:///SENTINEL">]><d:multistatus xmlns:d="DAV:">&secret;</d:multistatus>', 'caldav_xml_rejected'),
+        ):
+            self.session.request.side_effect = [response(body)]
+            with self.assertRaises(CalDAVError) as caught:
+                self.calendar.list_resources()
+            self.assertEqual(str(caught.exception), expected)
+
+    def test_icalendar_parser_exceptions_are_sanitized_as_calendar_data_errors(self):
+        self.session.request.side_effect = [response(multistatus(member()))]
+        with patch('calendar_sync.caldav.Calendar.from_ical', side_effect=ValueError('SENTINEL_EVENT')):
+            with self.assertRaisesRegex(CalDAVError, '^caldav_invalid_calendar_data$'):
+                self.calendar.list_resources()
 
     def test_dtd_entities_malformed_xml_and_unexpected_roots_are_rejected(self):
         for body in (b'<!DOCTYPE d:multistatus [<!ENTITY x SYSTEM "file:///etc/passwd">]><d:multistatus xmlns:d="DAV:">&x;</d:multistatus>',

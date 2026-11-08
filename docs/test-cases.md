@@ -4,7 +4,7 @@ Every discovered unit test has a stable case ID below. IDs refer to tests, not a
 
 ## Shared procedure
 
-Use the environment setup in [testing.md](testing.md). All 78 tests use temporary/fake state; none needs real credentials or provider requests. Run `python -m unittest discover -s tests -v` for the complete suite. To execute a row, use `python -m unittest discover -s tests -k '<full test identifier from the row>' -v`; expect exactly one test with `OK`. Prerequisites and cleanup are shared: Python 3.12+, installed project dependencies, local filesystem on Linux/macOS; temporary files are cleaned automatically. Expected exception assertions count as passing tests, not user-visible failures.
+Use the environment setup in [testing.md](testing.md). All 104 tests use temporary/fake state; none needs real credentials or provider requests. Run `python -m unittest discover -s tests -v` for the complete suite. To execute a row, use `python -m unittest discover -s tests -k '<full test identifier from the row>' -v`; expect exactly one test with `OK`. Prerequisites and cleanup are shared: Python 3.12+, installed project dependencies, local filesystem on Linux/macOS; temporary files are cleaned automatically. Expected exception assertions count as passing tests, not user-visible failures.
 
 ## CFG: test_scaffold.py
 
@@ -101,7 +101,7 @@ Source: [test_events.py](../tests/test_events.py). Run `python -m unittest disco
 
 ## DAV: test_caldav.py
 
-Source: [test_caldav.py](../tests/test_caldav.py). Run `python -m unittest discover -s tests -p 'test_caldav.py' -v`; expect 20 tests with `OK`. All fixtures are local/fake; no credentials or provider requests.
+Source: [test_caldav.py](../tests/test_caldav.py). Run `python -m unittest discover -s tests -p 'test_caldav.py' -v`; expect 23 tests with `OK`. All fixtures are local/fake; no credentials or provider requests.
 
 | Case ID | Executable test identifier | Setup / input | Expected result |
 | --- | --- | --- | --- |
@@ -131,9 +131,48 @@ Source: [test_caldav.py](../tests/test_caldav.py). Run `python -m unittest disco
 | DAV-019 | `test_caldav.CalDAVTests.test_http_opt_in_requires_boolean_and_matching_explicit_origin` | String/integer/None flag; default HTTPS or wrong-port origin | Strict boolean/origin errors; no request. |
 | DAV-020 | `test_caldav.CalDAVTests.test_http_loopback_still_rejects_resource_escapes_and_redirects` | Local HTTP report with foreign host/port/path/traversal href or 302 | Whole read rejected; no redirect or resource href followed. |
 
+## DAV read diagnostic cases
+
+| Case ID | Executable test identifier | Setup / input | Expected result |
+| --- | --- | --- | --- |
+| DAV-021 | `test_caldav.CalDAVTests.test_connection_timeout_and_stream_errors_have_safe_distinct_codes` | Connection refusal/DNS, connect/read timeout, chunked/decompression errors carrying sentinel secrets | Fixed connection_failed/timeout/response_interrupted codes; no secret text. |
+| DAV-022 | `test_caldav.CalDAVTests.test_xml_syntax_and_forbidden_entities_have_safe_distinct_codes` | Malformed XML or forbidden external entity/DTD with sentinel path | Fixed xml_invalid/xml_rejected codes; no payload/path leakage. |
+| DAV-023 | `test_caldav.CalDAVTests.test_icalendar_parser_exceptions_are_sanitized_as_calendar_data_errors` | iCalendar parser raises sentinel-bearing ValueError | Fixed invalid_calendar_data code, no event content. |
+
+
+## PLAN: test_planner.py
+
+Source: [test_planner.py](../tests/test_planner.py). Run `python -m unittest discover -s tests -p 'test_planner.py' -v`; expect 23 tests with `OK`. Inputs use fake provider responses, owned payloads and temporary SQLite state; no real credentials or event writes.
+
+| Case ID | Executable test identifier | Setup / input | Expected result |
+| --- | --- | --- | --- |
+| PLAN-001 | `test_planner.PlannerTests.test_new_source_plans_create_with_stable_identity_and_no_input_mutation` | Same new source planned twice | Equal dry-run create plans and deterministic href/UID; source unchanged and no execute API. |
+| PLAN-002 | `test_planner.PlannerTests.test_identity_is_configuration_calendar_and_source_scoped` | Change configuration, source/destination calendar, source ID or title | Identity changes for scope/ID, not for title edits. |
+| PLAN-003 | `test_planner.PlannerTests.test_incomplete_snapshots_never_produce_partial_plans` | False or nonboolean completeness assertions | Planning fails before returning any plan. |
+| PLAN-004 | `test_planner.PlannerTests.test_matching_mapping_markers_content_and_etag_plan_unchanged` | Matching saved mapping and marked baseline resource | One unchanged action with expected ETag. |
+| PLAN-005 | `test_planner.PlannerTests.test_changed_source_plans_update_only_after_owned_baseline_checks` | Source summary changed; destination baseline intact | Update proposal with new fingerprint and saved ETag. |
+| PLAN-006 | `test_planner.PlannerTests.test_changed_destination_etag_conflicts_even_when_source_is_unchanged` | Destination ETag changed | Conflict regardless of unchanged source. |
+| PLAN-007 | `test_planner.PlannerTests.test_unmapped_existing_resource_is_never_adopted_even_with_valid_markers` | Existing identity with markers but missing mapping; also unmarked payload | Conflict, never adoption/recreation. |
+| PLAN-008 | `test_planner.PlannerTests.test_href_and_uid_collisions_never_plan_create` | Unmapped href/UID collision or target reserved by another mapping | No create; conflict reported. |
+| PLAN-009 | `test_planner.PlannerTests.test_matching_titles_dates_are_not_used_to_adopt_unowned_events` | Same title/date content at unrelated UID/href | Unowned event is untouched; new source gets its own deterministic create proposal. |
+| PLAN-010 | `test_planner.PlannerTests.test_missing_destination_or_changed_mapping_identity_conflicts` | Missing destination, altered mapping UID or replaced resource UID | Fixed destination/mapping identity conflict. |
+| PLAN-011 | `test_planner.PlannerTests.test_missing_cancelled_and_recurring_sources_never_generate_delete` | Mapped source absent/cancelled/recurring; unmapped cancellation | Missing or unsupported action; no delete outcome. |
+| PLAN-012 | `test_planner.PlannerTests.test_unsupported_destination_is_never_overwritten` | Mapped destination marked recurring/unsupported | Conflict rather than update. |
+| PLAN-013 | `test_planner.PlannerTests.test_ownership_markers_and_real_content_must_match_saved_baseline` | Alter each marker or actual summary; add scheduling METHOD or wrong calendar VERSION | Ownership/baseline conflict even if ETag is unchanged. |
+| PLAN-014 | `test_planner.PlannerTests.test_extra_unsupported_properties_or_invalid_owned_payload_conflict` | Add attendee or corrupt raw owned data | Conflict; unsupported content not silently overwritten. |
+| PLAN-015 | `test_planner.PlannerTests.test_duplicate_sources_destinations_and_mappings_fail_closed` | Duplicate source ID, resource or mapping rows | Whole planning call fails. |
+| PLAN-016 | `test_planner.PlannerTests.test_out_of_scope_resources_and_mappings_are_rejected` | Foreign resource/mapping URL, wrong config, weak ETag or invalid baseline hash | Whole planning call fails with fixed code. |
+| PLAN-017 | `test_planner.PlannerTests.test_plan_order_is_deterministic_and_omissions_are_reported` | Reverse input order; include sentinel attendee | Equal ordered plans; omitted field names retained; repr excludes private values. |
+| PLAN-018 | `test_planner.PlannerTests.test_invalid_sources_and_contexts_produce_safe_failures` | Malformed source, invalid context/primary alias, live-plan flag or delete action | Unsupported source or fixed validation error; dry-run cannot be disabled. |
+| PLAN-019 | `test_planner.PlannerTests.test_all_day_owned_payload_and_marker_hashes_roundtrip` | Serialize/plan mapped all-day baseline | Unchanged action, hashed markers correct and no raw source calendar ID in payload. |
+| PLAN-020 | `test_planner.PreviewTests.test_preview_repeated_runs_do_not_create_runs_audits_or_mappings` | Repeated preview with fake readers and temporary SQLite | Stable create proposal; no run/audit/mapping rows added. |
+| PLAN-021 | `test_planner.PreviewTests.test_preview_reads_only_configuration_scoped_applied_mappings_without_advancing_them` | Current and foreign configurations have applied rows; source changes | Only selected configuration loaded; update proposed; mappings/audit history unchanged. |
+| PLAN-022 | `test_planner.PreviewTests.test_unknown_configuration_or_provider_scope_mismatch_stops_before_reads` | Unknown configuration or mismatched Google/CalDAV calendar | Fail before provider read calls. |
+| PLAN-023 | `test_planner.PreviewTests.test_provider_failure_never_creates_partial_plan_or_applied_state` | Destination/source reader raises; source failure must stop destination read | Fixed failure with no plan/mapping/audit writes; no second reader on source failure. |
+
 ## Manual and environment cases
 
-Manual Google cases are in [google-acceptance.md](google-acceptance.md); Nextcloud read/normalization cases are in [nextcloud.md](nextcloud.md). Four Google account/environment setup cases are in [google-setup.md](google-setup.md). Docker smoke and documentation review cases are in [testing.md](testing.md). Results belong in a dated [execution record](test-evidence.md), not as permanent PASS labels in this catalogue.
+Manual Google cases are in [google-acceptance.md](google-acceptance.md); Nextcloud cases in [nextcloud.md](nextcloud.md); planner cases in [planner.md](planner.md). Four Google account/environment setup cases are in [google-setup.md](google-setup.md). Docker smoke and documentation review cases are in [testing.md](testing.md). Results belong in a dated [execution record](test-evidence.md), not as permanent PASS labels in this catalogue.
 
 ## Explicit coverage limits
 

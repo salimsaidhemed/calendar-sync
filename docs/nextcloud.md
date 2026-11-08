@@ -17,7 +17,7 @@ python -m unittest discover -s tests -v
 python -m pip check
 ```
 
-Expected: 20 CalDAV tests (DAV-001–020), 13 normalization tests (NORM-001–013), 78 documented/discovered tests and 78 passing tests. No credentials, Nextcloud or Google requests are needed. [The catalogue](test-cases.md) lists each input/expected result. HTTP/XML/iCalendar fixtures are local test constants; Google conversion fixtures are local dictionaries.
+Expected: 23 CalDAV tests (DAV-001–023), 13 normalization tests (NORM-001–013), 104 documented/discovered tests and 104 passing tests. No credentials, Nextcloud or Google requests are needed. [The catalogue](test-cases.md) lists each input/expected result. HTTP/XML/iCalendar fixtures are local test constants; Google conversion fixtures are local dictionaries.
 
 ## Set up a dedicated Nextcloud test calendar
 
@@ -224,12 +224,22 @@ The script passes `origin_url='http://localhost:8090'` and `allow_http_loopback=
 
 After local testing, run `unset NEXTCLOUD_UAT_ORIGIN_URL NEXTCLOUD_UAT_ALLOW_HTTP_LOOPBACK` and restore `NEXTCLOUD_UAT_CALENDAR_URL` to the intended HTTPS test URL before another environment's tests. Do not change `NEXTCLOUD_URL` to HTTP: its default CLI settings still require HTTPS. For a remote server use HTTPS, or an appropriately configured local tunnel with matching loopback hrefs; the adapter does not grant a general insecure-HTTP override.
 
+### NC-UAT-07: diagnose a failed read without exposing secrets
+
+Prerequisites: current review branch, the same private secret/explicit test URL as NC-UAT-03, and optionally local HTTP settings from NC-UAT-06. Rerun NC-UAT-03 or PLAN-UAT-04 unchanged after updating code. Expect a fixed code from the error table if the read fails, never raw exception text or response content. `caldav_invalid_calendar_data` means a calendar object could not be safely parsed/validated; preserve the calendar and report only the code/server context. Transport and XML problems have separate codes. The legacy generic code remains for unclassified failures.
+
+For local availability only, `curl --silent --show-error --output /dev/null --write-out 'HTTP %{http_code}\n' --max-time 5 http://localhost:8090/status.php` makes an unauthenticated status request. HTTP 200 demonstrates reachability, not valid credentials, the correct collection or valid calendar resources. Do not add passwords or raw header/body output. Apply the matching remedy and rerun; record the new code and eventual PASS in test-evidence.md. Do not delete events, relax parsers or bypass complete-read requirements to hide failures. This diagnostic case is Not run against authenticated calendars by the author; its fixed-code unit cases are DAV-021–023.
+
 ### Cleanup and safe errors
 
 Stop test clients, restore permissions, revoke only the dedicated test app password, remove only the disposable calendar/fixtures if no longer needed, and securely remove only its local test password file. Unset `NEXTCLOUD_UAT_USERNAME`, `NEXTCLOUD_UAT_CALENDAR_URL`, `NEXTCLOUD_UAT_PASSWORD_FILE`. Never remove production calendars, credentials or SQLite mappings during test cleanup.
 
 | Error | Next action |
 | --- | --- |
+| caldav_connection_failed | No usable connection to the origin. Check local container/listening port, hostname resolution and network access. |
+| caldav_timeout | Connection/read timed out. Check server health/report load and network; no partial plan is accepted. |
+| caldav_response_interrupted | Stream disconnected or chunking/compression was invalid. Check server/proxy health before retrying. |
+| caldav_xml_invalid / xml_rejected | Malformed XML or forbidden DTD/entities. Check DAV/proxy configuration; do not disable safe parsing or share raw responses. |
 | caldav_https_required / http_loopback_only / calendar_outside_origin | For local HTTP only, supply explicit matching loopback origin and opt-in; otherwise use HTTPS. Do not relax remote/production transport. |
 | caldav_secret_missing / secret_permissions / secret_format | Correct the exact private app-password file/path/permissions; do not paste its contents. |
 | caldav_authentication_failed | Verify login username and test app password; browser SSO credentials alone are insufficient. |

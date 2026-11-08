@@ -195,6 +195,21 @@ class StateStore:
             (configuration_id, source_event_id),
         ).fetchone()
 
+    def planning_snapshot(self, configuration_id):
+        with self.transaction() as connection:
+            configuration = connection.execute(
+                'SELECT id,google_calendar_id,nextcloud_calendar_url FROM configurations WHERE id=?',
+                (configuration_id,),
+            ).fetchone()
+            if configuration is None:
+                raise ValueError('Unknown sync configuration')
+            mappings = connection.execute(
+                'SELECT configuration_id,source_event_id,destination_href,destination_uid,'
+                'source_fingerprint,destination_etag FROM mappings '
+                'WHERE configuration_id=? ORDER BY source_event_id', (configuration_id,),
+            ).fetchall()
+            return dict(configuration), tuple(dict(row) for row in mappings)
+
     def list_audit(self, configuration_id, *, after_id=0, limit=100):
         if not 1 <= limit <= 1000:
             raise ValueError('Audit page limit must be between 1 and 1000')
