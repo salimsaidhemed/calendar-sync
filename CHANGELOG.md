@@ -4,6 +4,7 @@
 
 ### Changed
 
+- Customer deployment guide now includes post-acceptance continuous startup, live-mode recreation, health checks, polling/restart and Docker auto-start expectations, plus maintenance stop/resume instructions that preserve state.
 - Customer deployment instructions now show how to obtain and verify the approved main SHA, check required files before checkout, build the matching image tag, and set one CUSTOMER_SYNC_IMAGE entry without duplicate appends.
 - Compose now explicitly starts the continuous worker, with mounted credential directories, persistent state, health checks, 120-second stop grace and restart unless stopped; the bare image/CLI remains an offline check.
 - Main ruleset now requires the verified GitHub Actions test check and an up-to-date branch, preserving existing PR/deletion/force-push safeguards. Documented the current public visibility and unresolved shared-author/owner approval boundary (#8).

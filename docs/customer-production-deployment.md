@@ -297,6 +297,57 @@ Wait for a newly completed post-restart cycle, not merely an older log line. Exp
 
 To return to observation-only operation: stop worker, set SYNC_DRY_RUN=true in .env, then `customer up -d --no-build --force-recreate worker`. Editing the file alone does not change an existing container. To stop cleanly: `customer stop worker`, then `customer ps -a` should show Exited(0). Preserve all state/credential volumes. Never use down --volumes or a new configuration ID as a restart/retry shortcut.
 
+### Run continuously after customer acceptance
+
+Once the customer acceptance checks are complete and the customer has approved live operation, keep the same approved image, project name, configuration/calendar identities, credential paths and state volume used for acceptance. On the **customer server**, edit /opt/calendar-sync/.env so it contains:
+
+```dotenv
+SYNC_DRY_RUN=false
+```
+
+From a new SSH shell, define the helper again and recreate the service in detached mode so it receives the live setting:
+
+```sh
+cd /opt/calendar-sync
+customer() {
+  docker compose --env-file .env -p calendar-sync-customer \
+    -f compose.yaml -f compose.customer.yaml "$@"
+}
+customer config --quiet
+customer config --images
+customer up -d --no-build --force-recreate worker
+```
+
+Confirm the image listing matches the recorded approved tag before starting. If operating a deliberately reviewed rollback, include its override last as described below; do not accidentally reselect the newer image. Detached mode keeps the worker running when you close SSH. Changing .env alone does not update an existing container; recreation is required when changing its settings.
+
+Verify a newly completed live cycle before leaving:
+
+```sh
+customer ps
+customer logs --tail 20 worker
+customer exec worker calendar-sync health
+echo "Health exit code: $?"
+```
+
+Expect a running worker, dry_run false, healthy cycle status and health exit0 after completion. Initially it may be starting. Inspect unexpected conflict/pending/skipped counts against the accepted inventory rather than treating health alone as proof that every event/field synced. With default SYNC_POLL_SECONDS=300, it waits roughly five minutes plus jitter after a cycle; actual cycle-to-cycle timing also includes work duration. Failures use the documented backoff/provider cooldown.
+
+The base Compose restart:unless-stopped policy restarts the process after failure and can bring it back after Docker starts, provided the container was not explicitly stopped. **Docker itself must start automatically after a server reboot.** On a systemd Linux server, check:
+
+```sh
+systemctl is-enabled docker
+```
+
+Expected enabled. If disabled/masked or the host uses another service manager, have the customer administrator configure/verify Docker auto-start through the host's normal operating procedure. Do not assume reboot recovery solely from a healthy container. An unhealthy status alone does not restart a still-running worker; monitoring/alerts remain necessary.
+
+For maintenance, stop cleanly and retain state:
+
+```sh
+customer stop worker
+customer ps -a
+```
+
+Expect Exited(0) after graceful shutdown. An explicitly stopped service stays stopped until you resume it; after maintenance, repeat the detached startup and new-cycle health checks above. Do not delete the state/credential volumes or change project/configuration IDs to restart. If choosing observation-only operation, set SYNC_DRY_RUN=true and recreate instead of silently leaving live mode enabled.
+
 ## 9. Backup, recovery and handover — CUSTOMER-UAT-09
 
 Assign a backup/alert owner and organization-appropriate recovery-point, retention and secret-storage policies. Take a verified state snapshot before upgrades/credential-path relocation and on the agreed schedule; transfer protected copies to independent encrypted storage. A backup on the same Docker volume is not disaster recovery. Keep the compatible image ID/commit and private configuration references with the manifest.
@@ -370,7 +421,7 @@ Renew Google authorization deliberately on the workstation if revoked/expired, t
 | CUSTOMER-UAT-05 | Secure transfer, UID10001/private file/directory permissions, writable token parent/read-only password mount and protected staged-copy handling. |
 | CUSTOMER-UAT-06 | Private settings, stable state/identity, exact tagged image and Compose validation; no HTTP/UAT networking. |
 | CUSTOMER-UAT-07 | Complete dry-run with reviewed actual inventory and no destination writes, including unsupported/missing/empty-source checks. |
-| CUSTOMER-UAT-08 | Explicit live decision, correct Nextcloud copies, repeat/restart without duplicates, health0 and graceful stop/observation-mode recovery. |
+| CUSTOMER-UAT-08 | Explicit live decision, correct Nextcloud copies, repeat/restart without duplicates, detached continuous operation, Docker auto-start policy, health0 and graceful stop/observation-mode recovery. |
 | CUSTOMER-UAT-09 | Verified backup and isolated restore drill, independent storage/image compatibility, retention/alert plan and conflict/token-rotation procedures understood. |
 
 Record each case using [test-evidence.md](test-evidence.md), including tested SHA, local overrides, account/setup path, date, expected vs actual counts and cleanup. All customer-environment cases are **Not run by the guide author**; no customer server, real credentials, deployment or production backup/restore was accessed/performed while writing it. Prior isolated UAT logs are useful regression evidence, not customer sign-off. Complete outstanding #14 release acceptance and required owner review before declaring production readiness.

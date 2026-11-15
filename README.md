@@ -34,6 +34,8 @@ That command explicitly runs the offline check. For continuous operation, prepar
 
 For a Google Workspace customer, use [the customer production deployment guide](docs/customer-production-deployment.md), covering administrator authorization, Linux/Docker setup, secure credential transfer, dry-run/live activation and handover. [The setup/backup/recovery runbook](docs/operations.md) provides detailed recovery procedures. [Reproducible Docker UAT](docs/docker-uat.md) supplies the isolated local test template; [reported worker evidence](docs/worker-uat-evidence.md) separates observed runtime checks from missing customer/visual confirmations.
 
+After customer acceptance, follow [Run continuously after customer acceptance](docs/customer-production-deployment.md#run-continuously-after-customer-acceptance) for detached live startup, health verification, reboot prerequisites and maintenance stops while preserving state.
+
 Start with [Google setup by account/environment](docs/google-setup.md) and [the testing guide](docs/testing.md). The [automated catalogue](docs/test-cases.md) covers every discovered unit test; the [manual acceptance guide](docs/google-acceptance.md) defines exact event fixtures and individual UAT cases. Production Google authorization preparation is documented separately from the still-incomplete production sync worker.
 
 Repository: [salimsaidhemed/calendar-sync](https://github.com/salimsaidhemed/calendar-sync). Current main protections and the review-identity limitation are documented in [branch-protection.md](docs/branch-protection.md).
