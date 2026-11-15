@@ -4,7 +4,7 @@ Every discovered unit test has a stable case ID below. IDs refer to tests, not a
 
 ## Shared procedure
 
-Use the environment setup in [testing.md](testing.md). All 167 tests use temporary/fake state; none needs real credentials or provider requests. Run `python -m unittest discover -s tests -v` for the complete suite. To execute a row, use `python -m unittest discover -s tests -k '<full test identifier from the row>' -v`; expect exactly one test with `OK`. Prerequisites and cleanup are shared: Python 3.12+, installed project dependencies, local filesystem on Linux/macOS; temporary files are cleaned automatically. Expected exception assertions count as passing tests, not user-visible failures.
+Use the environment setup in [testing.md](testing.md). All 183 tests use temporary/fake state; none needs real credentials or provider requests. Run `python -m unittest discover -s tests -v` for the complete suite. To execute a row, use `python -m unittest discover -s tests -k '<full test identifier from the row>' -v`; expect exactly one test with `OK`. Prerequisites and cleanup are shared: Python 3.12+, installed project dependencies, local filesystem on Linux/macOS; temporary files are cleaned automatically. Expected exception assertions count as passing tests, not user-visible failures.
 
 ## CFG: test_scaffold.py
 
@@ -281,6 +281,43 @@ Run `python -m unittest discover -s tests -p 'test_google_calendar.py' -v`; expe
 | Case ID | Executable test identifier | Setup / input | Expected result |
 | --- | --- | --- | --- |
 | GCAL-014 | `test_google_calendar.CalendarReadTests.test_shutdown_between_pages_does_not_fetch_more_or_return_partial_events` | shutdown between pages does not fetch more or return partial events | Stop set after first page aborts before requesting next page; partial source list is never returned. |
+
+## SNAP: test_state_snapshot.py
+
+Run `python -m unittest discover -s tests -p 'test_state_snapshot.py' -v`; expect 14 passing tests. Temporary private SQLite/fake references only, no credentials or provider traffic, automatic cleanup. Source: [test_state_snapshot.py](../tests/test_state_snapshot.py).
+
+| Case ID | Executable test identifier | Setup / input | Expected result |
+| --- | --- | --- | --- |
+| SNAP-001 | `test_state_snapshot.SnapshotTests.test_backup_restore_preserves_all_tables_schema_and_audit_triggers` | backup restore preserves all tables schema and audit triggers | Populated v2 state includes applied mapping/audit and attempted pending intent; backup plus isolated restore preserves every table/trigger, attempts and0600 files/0700 new directory. |
+| SNAP-002 | `test_state_snapshot.SnapshotTests.test_active_worker_lock_refuses_backup_without_publishing` | active worker lock refuses backup without publishing | Owning StateStore lock prevents snapshot publication; closing owner permits backup. |
+| SNAP-003 | `test_state_snapshot.SnapshotTests.test_existing_destination_and_same_source_never_overwritten` | existing destination and same source never overwritten | Same source or existing destination rejected; destination bytes preserved. |
+| SNAP-004 | `test_state_snapshot.SnapshotTests.test_symlink_relative_missing_and_private_permissions_fail_closed` | Symlink/relative/missing source, broad modes, DB directly in shared sticky /tmp | Fail closed; a protected private subdirectory beneath sticky ancestors remains supported by normal snapshot cases. |
+| SNAP-005 | `test_state_snapshot.SnapshotTests.test_sqlite_sidecar_destination_refused` | sqlite sidecar destination refused | SQLite lock/WAL/SHM/journal target paths are never used as backup destinations. |
+| SNAP-006 | `test_state_snapshot.SnapshotTests.test_publication_race_does_not_overwrite_other_file` | Competing target appears before publish or published DB inode is replaced | No overwrite; reject replaced published identity, never claim verified PASS; temporary snapshot removed. |
+| SNAP-007 | `test_state_snapshot.SnapshotTests.test_failed_copy_is_not_published_and_partial_file_cleaned` | failed copy is not published and partial file cleaned | Injected output verification failure publishes no backup and removes partial file. |
+| SNAP-008 | `test_state_snapshot.SnapshotTests.test_future_schema_and_foreign_key_damage_are_rejected` | future schema and foreign key damage are rejected | Future schema and injected foreign-key damage rejected before publication. |
+| SNAP-009 | `test_state_snapshot.SnapshotTests.test_incomplete_database_schema_is_not_published` | incomplete database schema is not published | Incomplete application schema rejected; no backup published. |
+| SNAP-010 | `test_state_snapshot.SnapshotTests.test_v1_snapshot_does_not_migrate_source_and_restore_upgrades_on_open` | v1 snapshot does not migrate source and restore upgrades on open | Real v1 snapshot retains version1 without source migration; opening a restored copy migrates with current application. |
+| SNAP-011 | `test_state_snapshot.SnapshotTests.test_cli_reports_only_fixed_codes_and_aggregate_metadata` | cli reports only fixed codes and aggregate metadata | CLI success prints only schema/mapping count; I/O failure prints fixed code and exit2 without secret/path text. |
+
+## SNAP: snapshot isolation and schema hardening
+
+Run `python -m unittest discover -s tests -p 'test_state_snapshot.py' -v`; expect 14 passes including SNAP-001–011 above. Synthetic private databases only; automatic cleanup.
+
+| Case ID | Executable test identifier | Setup / input | Expected result |
+| --- | --- | --- | --- |
+| SNAP-012 | `test_state_snapshot.SnapshotTests.test_destination_orphan_sidecars_and_reservation_races_are_refused` | Absent target DB with stale lock/WAL/SHM/journal; journal appears during source open | Refuse before publishing or opening a contaminated destination; no PASS for unsafe restore. |
+| SNAP-013 | `test_state_snapshot.SnapshotTests.test_source_and_source_lock_replacement_are_detected` | Source becomes symlink, source lock replaced, or source inode changes at SQLite open | Inode/private-file guards reject each case; no snapshot published. |
+| SNAP-014 | `test_state_snapshot.SnapshotTests.test_missing_protective_trigger_index_or_modified_table_refused` | Supported version but dropped audit trigger/index or unexpected table column | Compare to supported migration schema, reject mismatch rather than claiming safe compatibility. |
+
+## DOCOPS: documented operations procedures
+
+Run `python -m unittest discover -s tests -p 'test_operations_docs.py' -v`; expect 2 passes. The actual runbook Python block executes on synthetic private two-configuration SQLite state and dummy files; no provider access or real secrets. Temporary files clean up automatically.
+
+| Case ID | Executable test identifier | Setup / input | Expected result |
+| --- | --- | --- | --- |
+| DOCOPS-001 | `test_operations_docs.OperationsDocsTests.test_documented_relocation_preserves_mapping_history_and_other_configuration` | Execute documented relocation on selected configuration, fake private new credential paths | Only selected credential refs change; mappings, audit and other configuration remain unchanged. |
+| DOCOPS-002 | `test_operations_docs.OperationsDocsTests.test_documented_relocation_rolls_back_wrong_old_reference_and_refuses_calendar_change` | Wrong second old reference, then changed calendar identity | First update rolls back on second-row mismatch; changed calendar refused; complete state dump unchanged. |
 
 ## Manual and environment cases
 

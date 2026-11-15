@@ -14,6 +14,9 @@
 
 ### Added
 
+- Setup/operations runbook covering personal/Workspace authorization, exact calendar selection, private runtime credentials, preview-to-live decisions, scoped credential-path relocation, backups, isolated restore/rollback and explicit retention/lost-state/conflict limits (#16).
+- Quiesced SQLite snapshot helper with private verified backups, lock/overwrite/sidecar protections, v1/v2 preservation and isolated restore tests; no remote writes, state reset or automatic adoption.
+- Checked-in standalone local Docker UAT template and complete credential preparation/Google renewal instructions, plus sanitized owner-reported worker evidence with visual/commit/production gaps left explicit.
 - Continuous worker/one-cycle and health CLI commands with strict configuration, dry-run defaults, lifetime state locking, private atomic health snapshots, jittered polling/backoff and graceful SIGTERM/SIGINT handling.
 - Worker/signal/rate-limit/health tests, offline real-engine container smoke, Compose validation in CI and complete worker setup/acceptance cases.
 - Opt-in conditional Nextcloud executor with complete preflight, ownership revalidation, create/update preconditions, confirmed readback and no delete path; library dry-run remains the default and the CLI stays offline.

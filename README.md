@@ -1,6 +1,6 @@
 # Calendar Sync
 
-Repository foundation for Calendar Sync v0.1.0: a Dockerized Python worker connecting one Google Workspace master calendar to one Nextcloud CalDAV calendar at `https://nextcloud.tcadc.com`.
+Calendar Sync v0.1.0 development project: a Dockerized Python worker connecting one personal or Google Workspace master calendar to one Nextcloud CalDAV calendar at `https://nextcloud.tcadc.com`.
 
 **Status: provider/state libraries, planner, conditional executor and continuous Docker worker implemented.** The bare command remains an offline check; `calendar-sync worker` polls configured calendars, in dry-run by default. This is not yet a released v0.1.0 application; complete live/deployment acceptance remains under #14/#16.
 
@@ -31,6 +31,8 @@ docker compose run --rm worker calendar-sync
 That command explicitly runs the offline check. For continuous operation, prepare the private mounted credential directories and settings in [worker.md](docs/worker.md), then `docker compose up -d worker`. Compose defaults to dry-run, uses an unprivileged read-only container, persistent state, health checks and restart unless stopped. Never commit credentials, OAuth tokens, event data or SQLite files.
 
 ## Development workflow
+
+For deployment, start with [the setup/backup/recovery runbook](docs/operations.md). [Reproducible Docker UAT](docs/docker-uat.md) provides the checked-in local test template, private credential-volume preparation, token renewal and exact fixture/restart checks. [Reported worker acceptance evidence](docs/worker-uat-evidence.md) separates observed runtime checks from missing visual/production confirmations.
 
 Start with [Google setup by account/environment](docs/google-setup.md) and [the testing guide](docs/testing.md). The [automated catalogue](docs/test-cases.md) covers every discovered unit test; the [manual acceptance guide](docs/google-acceptance.md) defines exact event fixtures and individual UAT cases. Production Google authorization preparation is documented separately from the still-incomplete production sync worker.
 

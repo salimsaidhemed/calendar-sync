@@ -24,3 +24,5 @@ jobs:
         run: |
           cp .env.example .env
           docker compose config --quiet
+      - name: Validate isolated UAT template
+        run: docker compose --env-file examples/uat/.env.example -f examples/uat/compose.yaml --profile setup config --quiet
