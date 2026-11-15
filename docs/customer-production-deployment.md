@@ -36,7 +36,8 @@ Use the reviewed checkout, Python3.12+ and an activated project virtual environm
 ```sh
 python3 -m venv .venv
 . .venv/bin/activate
-python -m pip install -e .
+python -m pip install -r requirements.lock
+python -m pip install --no-deps -e .
 mkdir -p secrets
 chmod 700 secrets
 chmod 600 secrets/customer-google-client.json
@@ -106,6 +107,16 @@ git show --no-patch --format=fuller "$CUSTOMER_SYNC_COMMIT"
 ```
 
 The printed value is normally 40 hexadecimal characters. In GitHub, compare it with the commit shown for main and confirm the owner's reviewed PRs #30 and #31 are merged into that version. **Latest main is a candidate, not automatic deployment approval.** If your change process approved an older main commit, set CUSTOMER_SYNC_COMMIT to that full approved SHA instead. Do not use a feature-branch SHA, a PR number, an image ID or the literal REPLACE placeholder.
+
+Once the owner has published the frozen v0.1.0 release, prefer its exact tag instead of following future main/GUI changes:
+
+```sh
+git fetch origin --tags
+export CUSTOMER_SYNC_COMMIT="$(git rev-parse 'refs/tags/v0.1.0^{commit}')"
+echo "$CUSTOMER_SYNC_COMMIT"
+```
+
+Use this only after verifying the approved release exists; a planned release is not a tag. Continue with the same ancestry/file/checkout guards below. See [release publication](release.md#owner-merge-then-immutable-tag--rel-uat-04).
 
 Verify the selected commit is on fetched main and contains the worker/recovery files **before** changing the checkout:
 
@@ -204,7 +215,7 @@ An image is built locally from the approved checkout; no registry push is needed
 
 ```sh
 test "$(git rev-parse HEAD)" = "${CUSTOMER_SYNC_COMMIT:?Select the approved SHA in section 4 first}"
-docker build -t "calendar-sync:customer-${CUSTOMER_SYNC_COMMIT}" .
+docker build --build-arg VCS_REF="$CUSTOMER_SYNC_COMMIT" -t "calendar-sync:customer-${CUSTOMER_SYNC_COMMIT}" .
 docker image inspect "calendar-sync:customer-${CUSTOMER_SYNC_COMMIT}" --format '{{.Id}}'
 printf 'CUSTOMER_SYNC_IMAGE=calendar-sync:customer-%s\n' "$CUSTOMER_SYNC_COMMIT"
 ```

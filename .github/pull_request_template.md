@@ -15,7 +15,8 @@ Include prerequisites, exact setup and feature-specific test commands, full-suit
 ```sh
 python3 -m venv .venv
 . .venv/bin/activate
-python -m pip install -e .
+python -m pip install -r requirements.lock
+python -m pip install --no-deps -e .
 python scripts/check_test_catalogue.py
 python -m unittest discover -s tests -v
 ```

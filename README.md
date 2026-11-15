@@ -1,8 +1,8 @@
 # Calendar Sync
 
-Calendar Sync v0.1.0 development project: a Dockerized Python worker connecting one personal or Google Workspace master calendar to one Nextcloud CalDAV calendar at `https://nextcloud.tcadc.com`.
+Calendar Sync v0.1.0 worker baseline: a Dockerized Python worker connecting one personal or Google Workspace master calendar to one Nextcloud CalDAV calendar at `https://nextcloud.tcadc.com`.
 
-**Status: provider/state libraries, planner, conditional executor and continuous Docker worker implemented.** The bare command remains an offline check; `calendar-sync worker` polls configured calendars, in dry-run by default. This is not yet a released v0.1.0 application; complete live/deployment acceptance remains under #14/#16.
+**Status: one-way worker, state/recovery and deployment guides implemented.** The bare command remains an offline check; `calendar-sync worker` polls configured calendars in dry-run by default. See [release notes](docs/releases/v0.1.0.md), [freeze/publication procedure](docs/release.md) and [GitHub Releases](https://github.com/salimsaidhemed/calendar-sync/releases) for actual publication status. Source version alone is not customer production acceptance. GUI/API work is a separate M4 track.
 
 The [SQLite state library](docs/state.md) provides configuration-scoped mappings, run history, audit records, recovery intents and migrations. The worker owns its database lock for its lifetime; bare offline checks do not create a database.
 
@@ -15,7 +15,8 @@ Python 3.12 or newer:
 ```sh
 python3 -m venv .venv
 . .venv/bin/activate
-python -m pip install -e .
+python -m pip install -r requirements.lock
+python -m pip install --no-deps -e .
 python -m unittest discover -s tests -v
 calendar-sync
 ```
@@ -36,7 +37,7 @@ For a Google Workspace customer, use [the customer production deployment guide](
 
 After customer acceptance, follow [Run continuously after customer acceptance](docs/customer-production-deployment.md#run-continuously-after-customer-acceptance) for detached live startup, health verification, reboot prerequisites and maintenance stops while preserving state.
 
-Start with [Google setup by account/environment](docs/google-setup.md) and [the testing guide](docs/testing.md). The [automated catalogue](docs/test-cases.md) covers every discovered unit test; the [manual acceptance guide](docs/google-acceptance.md) defines exact event fixtures and individual UAT cases. Production Google authorization preparation is documented separately from the still-incomplete production sync worker.
+Start with [Google setup by account/environment](docs/google-setup.md) and [the testing guide](docs/testing.md). The [automated catalogue](docs/test-cases.md) covers every discovered unit test; the [manual acceptance guide](docs/google-acceptance.md) defines exact event fixtures and individual UAT cases. Customer acceptance is recorded separately from source-release and automated-test results.
 
 Repository: [salimsaidhemed/calendar-sync](https://github.com/salimsaidhemed/calendar-sync). Current main protections and the review-identity limitation are documented in [branch-protection.md](docs/branch-protection.md).
 
@@ -44,4 +45,4 @@ All changes use linked issues, feature branches and owner-approved pull requests
 
 ## Planned implementation
 
-See [the architecture and acceptance criteria](docs/architecture.md). The initial design assumes Google is authoritative and Nextcloud is the destination. Bidirectional sync requires an explicit conflict policy and is not part of this scaffold. FastAPI and Keycloak are future components.
+See [the architecture and acceptance criteria](docs/architecture.md). Google is authoritative and Nextcloud is the destination. Bidirectional sync requires an explicit conflict policy and is outside v0.1.0. FastAPI/Keycloak/per-user GUI starts with #17, then #19 and #18; [the release boundary](docs/release.md#gui-start-and-release-boundary) keeps those changes separate from the frozen worker.
