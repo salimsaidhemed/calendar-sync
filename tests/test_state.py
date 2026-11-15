@@ -1,4 +1,5 @@
 from pathlib import Path
+from contextlib import closing
 import sqlite3
 import subprocess
 import sys
@@ -45,12 +46,12 @@ class StateTests(unittest.TestCase):
             self.assertEqual(len(store.list_audit('primary')), 2)
 
     def test_future_schema_rejected_without_changes_and_lock_released(self):
-        with sqlite3.connect(self.path) as connection:
+        with closing(sqlite3.connect(self.path)) as connection, connection:
             connection.execute('PRAGMA user_version=999')
         with self.assertRaises(SchemaVersionError):
             with StateStore(self.path):
                 pass
-        with sqlite3.connect(self.path) as connection:
+        with closing(sqlite3.connect(self.path)) as connection, connection:
             self.assertEqual(connection.execute('PRAGMA user_version').fetchone()[0], 999)
             connection.execute('PRAGMA user_version=0')
         with StateStore(self.path):
@@ -62,7 +63,7 @@ class StateTests(unittest.TestCase):
             with self.assertRaises(sqlite3.OperationalError):
                 with StateStore(self.path):
                     pass
-        with sqlite3.connect(self.path) as connection:
+        with closing(sqlite3.connect(self.path)) as connection, connection:
             self.assertEqual(connection.execute('PRAGMA user_version').fetchone()[0], 0)
             self.assertEqual(connection.execute(
                 "SELECT count(*) FROM sqlite_master WHERE type='table'"

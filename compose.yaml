@@ -2,7 +2,9 @@ services:
   worker:
     build: .
     env_file: .env
-    restart: "no"
+    command: ["calendar-sync", "worker"]
+    restart: unless-stopped
+    stop_grace_period: 120s
     read_only: true
     init: true
     security_opt:
@@ -13,6 +15,14 @@ services:
       - /tmp:size=16m,mode=1777
     volumes:
       - sync-data:/data
+      - ./secrets/google:/run/secrets/google:rw
+      - ./secrets/nextcloud:/run/secrets/nextcloud:ro
+    healthcheck:
+      test: ["CMD", "calendar-sync", "health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
 
 volumes:
   sync-data:

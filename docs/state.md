@@ -2,7 +2,7 @@
 
 The dry-run planner uses `planning_snapshot(configuration_id)` to obtain selected calendar fields and scoped applied mappings in one read transaction. It returns copied dictionaries, excludes credential references/other configurations, and does not add runs, audit entries or mappings. See [planner.md](planner.md) for preview integration and ownership checks.
 
-Implemented for issue #10 and extended with the issue #13 execution journal. The CLI still does not open a database or sync events.
+Implemented for issue #10 and extended with the issue #13 execution journal. The bare CLI is offline; [the worker](worker.md) opens the configured database and holds its lock for its lifetime.
 
 ## Storage and lifetime
 

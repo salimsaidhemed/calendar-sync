@@ -4,7 +4,7 @@ Start with [Google setup](google-setup.md) for separate personal/Workspace testi
 
 For fixed calendar-access error codes and recovery steps, see [Google troubleshooting](google-troubleshooting.md).
 
-Implemented for issue #9. This adds Google authorization and a read-only adapter; it does not enable syncing or any Nextcloud writes. Default `calendar-sync` behavior remains credential-free and offline. Provider operations are not yet integrated into the SQLite worker.
+Implemented for issue #9. This adds Google authorization and a read-only adapter; it does not enable syncing or any Nextcloud writes. Default `calendar-sync` behavior remains credential-free and offline. Provider operations are integrated into [the worker](worker.md); Google remains read-only.
 
 For reproducible unit tests and manual user acceptance scenarios, including expected results and cleanup, see [Google acceptance testing](google-acceptance.md).
 
@@ -32,7 +32,7 @@ The adapter uses the Google-supported Desktop flow and the event list API. See [
 
 ## Reading the explicitly selected calendar
 
-In Google Calendar settings, open the intended master calendar and copy its Calendar ID from Integrate calendar. Prefer the exact stable ID rather than the `primary` alias. No display-name discovery is performed. Integration example for the upcoming worker:
+In Google Calendar settings, open the intended master calendar and copy its Calendar ID from Integrate calendar. Prefer the exact stable ID rather than the `primary` alias. No display-name discovery is performed. Library integration example:
 
 ```python
 from calendar_sync.google_calendar import GoogleCalendar
@@ -57,7 +57,7 @@ The client/token files must be regular, owned by the current process user and ha
 
 Token reads/refresh and local authorization acquire a nonblocking `<token-file>.lock`. Competing access fails closed; retry after the other operation finishes. Expiring tokens refresh before a page request. Successful refresh writes a same-directory 0600 temporary file, flushes and atomically replaces the old token, then flushes the directory. Normal failures remove temporary files. A process crash can leave a `.oauth-*` file: treat it as a secret, and clean it only with all clients stopped. Do not delete a live lock file. An interrupted remote token exchange may require reauthorization; local atomicity cannot make Google's token issuance transactional.
 
-For Docker deployment, mount a dedicated writable secret directory so token rotation can replace the file and create its lock. A read-only single-file token mount will fail when refreshing. Ensure ownership matches container UID 10001; restrict the directory to 0700 and files to 0600. Securely transfer the token to that directory after workstation authorization. Compose secret mounts and continuous-worker wiring are deferred to the operations milestone; the current Compose service still runs only the offline scaffold. No browser login is ever initiated automatically by token refresh or calendar reads.
+For Docker deployment, mount a dedicated writable secret directory so token rotation can replace the file and create its lock. A read-only single-file token mount will fail when refreshing. Ensure ownership matches container UID 10001; restrict the directory to 0700 and files to 0600. Securely transfer the token to that directory after workstation authorization. [Worker setup](worker.md) documents dedicated secret-directory mounts and continuous Compose operation. No browser login is ever initiated automatically by token refresh or calendar reads.
 
 ## Failures, retries and diagnostics
 

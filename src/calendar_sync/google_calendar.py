@@ -3,6 +3,7 @@
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 import random
+import math
 import time
 from urllib.parse import quote
 
@@ -45,7 +46,7 @@ def error_reasons(response):
 
 class GoogleCalendar:
     def __init__(self, token_file, calendar_id, *, attempts=4, max_pages=1000,
-                 max_events=100000, sleep=time.sleep, jitter=random.random):
+                 max_events=100000, sleep=time.sleep, jitter=random.random, should_stop=lambda: False):
         if not isinstance(calendar_id, str) or not calendar_id.strip():
             raise ValueError("An explicit Google calendar ID is required")
         if not 1 <= attempts <= 8 or max_pages < 1 or max_events < 1:
@@ -57,6 +58,8 @@ class GoogleCalendar:
         self.max_events = max_events
         self.sleep = sleep
         self.jitter = jitter
+        self.retry_after_seconds = 0
+        self.should_stop = should_stop
 
     def _retry_after(self, value):
         try:
@@ -67,12 +70,16 @@ class GoogleCalendar:
             except (ValueError, TypeError, OverflowError):
                 return 0
         if not 0 <= delay <= 60:
+            if math.isfinite(delay) and delay > 60:
+                self.retry_after_seconds = max(self.retry_after_seconds, min(86400, math.ceil(delay)))
             raise GoogleError("google_retry_deferred")
         return delay
 
     def _page(self, session, params):
         url = "https://www.googleapis.com/calendar/v3/calendars/" + quote(self.calendar_id, safe="") + "/events"
         for attempt in range(self.attempts):
+            if self.should_stop():
+                raise GoogleError('google_read_stopped')
             token = self.tokens.access_token()
             retry_after = 0
             try:
@@ -119,6 +126,8 @@ class GoogleCalendar:
             with requests.Session() as session:
                 session.trust_env = False
                 for unused_page in range(self.max_pages):
+                    if self.should_stop():
+                        raise GoogleError('google_read_stopped')
                     payload = self._page(session, params)
                     items = payload.get("items", [])
                     if not isinstance(items, list):

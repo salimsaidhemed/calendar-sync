@@ -152,7 +152,20 @@ class CalendarReadTests(unittest.TestCase):
         self.session.get.side_effect = [response(status=503, headers={'Retry-After': '3600'})]
         with self.assertRaisesRegex(GoogleError, 'retry_deferred'):
             self.calendar.list_events()
+        self.assertEqual(self.calendar.retry_after_seconds, 3600)
         self.calendar.sleep.assert_not_called()
+
+    def test_shutdown_between_pages_does_not_fetch_more_or_return_partial_events(self):
+        stopping = False
+        def first(*args, **kwargs):
+            nonlocal stopping
+            stopping = True
+            return {'items': [{'id':'first'}], 'nextPageToken':'second'}
+        self.calendar.should_stop = lambda: stopping
+        with patch.object(self.calendar, '_page', side_effect=first) as page:
+            with self.assertRaisesRegex(GoogleError, '^google_read_stopped$'):
+                self.calendar.list_events()
+            self.assertEqual(page.call_count, 1)
 
     def test_invalid_payloads_and_limits_fail_closed(self):
         for payload in ([], {'items': {}}, {'items': [{}]}, {'nextPageToken': ''}):

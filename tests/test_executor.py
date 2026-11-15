@@ -7,7 +7,7 @@ from unittest.mock import Mock, patch
 
 from calendar_sync.caldav import CalDAVError, CalDAVPreconditionError, CalendarResource, _resource
 from calendar_sync.events import normalize_google_event
-from calendar_sync.executor import ExecutionError, execute_sync
+from calendar_sync.executor import ExecutionError, ExecutionStopped, execute_sync
 from calendar_sync.planner import PlanContext, event_identity, serialize_owned_event
 from calendar_sync.state import StateStore
 
@@ -366,3 +366,68 @@ class ExecutorTests(unittest.TestCase):
             self.assertEqual(self.caldav.puts, [])
             self.assertIsNone(self.mapping())
             self.google.list_events.side_effect = None
+
+    def test_stop_before_preflight_does_not_read_or_create_run(self):
+        with self.assertRaises(ExecutionStopped):
+            self.execute(dry_run=False, should_stop=lambda: True)
+        self.google.list_events.assert_not_called()
+        self.assertEqual(self.store.connection.execute('SELECT count(*) FROM runs').fetchone()[0], 0)
+
+    def test_stop_after_google_preflight_does_not_start_nextcloud_read(self):
+        stopping = False
+        def source():
+            nonlocal stopping
+            stopping = True
+            return [source_event()]
+        self.google.list_events.side_effect = source
+        with patch.object(self.caldav, 'list_resources') as read:
+            with self.assertRaises(ExecutionStopped):
+                self.execute(dry_run=False, should_stop=lambda: stopping)
+            read.assert_not_called()
+        self.assertEqual(self.store.connection.execute('SELECT count(*) FROM runs').fetchone()[0], 0)
+
+    def test_stop_during_source_revalidation_keeps_unattempted_intent_and_no_put(self):
+        stopping = False
+        calls = 0
+        def source():
+            nonlocal stopping, calls
+            calls += 1
+            if calls == 2:
+                stopping = True
+            return [source_event()]
+        self.google.list_events.side_effect = source
+        with self.assertRaises(ExecutionStopped):
+            self.execute(dry_run=False, should_stop=lambda: stopping)
+        self.assertEqual(self.caldav.puts, [])
+        self.assertEqual(self.store.pending_intents('config')[0]['attempts'], 0)
+        self.assertEqual(self.store.connection.execute('SELECT status FROM runs').fetchone()[0], 'interrupted')
+
+    def test_stop_after_put_confirms_first_write_before_stopping_remaining_events(self):
+        self.google.list_events.return_value = [source_event('first'), source_event('second')]
+        stopping = False
+        original = self.caldav.put_resource
+        def stop_after_write(*args, **kwargs):
+            nonlocal stopping
+            original(*args, **kwargs)
+            stopping = True
+        with patch.object(self.caldav, 'put_resource', side_effect=stop_after_write):
+            with self.assertRaises(ExecutionStopped):
+                self.execute(dry_run=False, should_stop=lambda: stopping)
+        self.assertEqual(len(self.caldav.puts), 1)
+        self.assertIsNotNone(self.store.get_mapping('config', 'first'))
+        self.assertIsNone(self.store.get_mapping('config', 'second'))
+
+    def test_rate_limited_put_defers_readback_and_other_events_until_next_invocation(self):
+        self.google.list_events.return_value = [source_event('first'), source_event('second')]
+        def limited(*args, **kwargs):
+            self.caldav.retry_after_seconds = 120
+            raise CalDAVError('caldav_rate_limited')
+        with patch.object(self.caldav, 'put_resource', side_effect=limited) as put:
+            with patch.object(self.caldav, 'get_resource', wraps=self.caldav.get_resource) as get:
+                with self.assertRaisesRegex(ExecutionError, '^execution_rate_limited$'):
+                    self.execute(dry_run=False)
+                self.assertEqual(put.call_count, 1)
+                self.assertEqual(get.call_count, 1)
+        self.assertEqual(len(self.store.pending_intents('config')), 1)
+        self.assertEqual(self.store.connection.execute('SELECT count(*) FROM mappings').fetchone()[0], 0)
+        self.assertEqual(self.execute(dry_run=False).counts()['applied'], 2)

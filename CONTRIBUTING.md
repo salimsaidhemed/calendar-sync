@@ -34,7 +34,7 @@ Mark manual scenarios passed, failed or not run with a reason. Unit/CI results c
 
 The owner manages main protection. Require pull requests and the `test` CI check, block direct pushes and force pushes, and require review where the account plan and reviewer identities allow it. GitHub does not permit authors to approve their own PRs: when the agent publishes using the owner's account, owner review is a manual gate followed by an owner merge, or needs a separate contributor identity for enforceable approval. Never bypass or weaken protection to complete work. Private-repository protection availability depends on the GitHub plan. Track verification in issue #8.
 
-On 2026-11-07, GitHub returned HTTP 403 for this private repository's protection API: upgrading to GitHub Pro or changing visibility is required for that feature. The repository remains private. The feature-branch and owner-merge policy applies, but server-side enforcement has not been verified and must not be claimed as active. Issue #8 tracks resolution.
+On 2026-11-08 the repository is public and its active ruleset requires PRs, blocks deletion/force pushes and has no bypass actors. The required GitHub Actions `test` check (integration 15368) and up-to-date branch requirement were added and verified through the effective main rules API. Visibility was not changed by this work. See [the verification record](docs/branch-protection.md). Formal approval/agent-merge restrictions remain a shared-identity limitation under #8; do not describe manual owner review as independently enforced.
 
 ## Documentation requirements
 

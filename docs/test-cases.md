@@ -4,7 +4,7 @@ Every discovered unit test has a stable case ID below. IDs refer to tests, not a
 
 ## Shared procedure
 
-Use the environment setup in [testing.md](testing.md). All 141 tests use temporary/fake state; none needs real credentials or provider requests. Run `python -m unittest discover -s tests -v` for the complete suite. To execute a row, use `python -m unittest discover -s tests -k '<full test identifier from the row>' -v`; expect exactly one test with `OK`. Prerequisites and cleanup are shared: Python 3.12+, installed project dependencies, local filesystem on Linux/macOS; temporary files are cleaned automatically. Expected exception assertions count as passing tests, not user-visible failures.
+Use the environment setup in [testing.md](testing.md). All 167 tests use temporary/fake state; none needs real credentials or provider requests. Run `python -m unittest discover -s tests -v` for the complete suite. To execute a row, use `python -m unittest discover -s tests -k '<full test identifier from the row>' -v`; expect exactly one test with `OK`. Prerequisites and cleanup are shared: Python 3.12+, installed project dependencies, local filesystem on Linux/macOS; temporary files are cleaned automatically. Expected exception assertions count as passing tests, not user-visible failures.
 
 ## CFG: test_scaffold.py
 
@@ -61,7 +61,7 @@ Source: [test_google_oauth.py](../tests/test_google_oauth.py). Run this group wi
 
 ## GCAL: test_google_calendar.py
 
-Source: [test_google_calendar.py](../tests/test_google_calendar.py). Run this group with `python -m unittest discover -s tests -p 'test_google_calendar.py' -v`; expect 13 passing tests.
+Source: [test_google_calendar.py](../tests/test_google_calendar.py). Run this group with `python -m unittest discover -s tests -p 'test_google_calendar.py' -v`; expect 14 passing tests.
 
 | Case ID | Executable test identifier | Setup / input | Expected result |
 | --- | --- | --- | --- |
@@ -101,7 +101,7 @@ Source: [test_events.py](../tests/test_events.py). Run `python -m unittest disco
 
 ## DAV: test_caldav.py
 
-Source: [test_caldav.py](../tests/test_caldav.py). Run `python -m unittest discover -s tests -p 'test_caldav.py' -v`; expect 29 tests with `OK`. All fixtures are local/fake; no credentials or provider requests.
+Source: [test_caldav.py](../tests/test_caldav.py). Run `python -m unittest discover -s tests -p 'test_caldav.py' -v`; expect 31 tests with `OK`. All fixtures are local/fake; no credentials or provider requests.
 
 | Case ID | Executable test identifier | Setup / input | Expected result |
 | --- | --- | --- | --- |
@@ -185,7 +185,7 @@ Run `python -m unittest discover -s tests -p 'test_caldav.py' -v`; expect 29 pas
 
 ## EXEC: test_executor.py
 
-Run `python -m unittest discover -s tests -p 'test_executor.py' -v`; expect 25 passing tests. Inputs use local fakes and temporary state with automatic cleanup; no credentials or provider access. Source: [test_executor.py](../tests/test_executor.py).
+Run `python -m unittest discover -s tests -p 'test_executor.py' -v`; expect 30 passing tests. Inputs use local fakes and temporary state with automatic cleanup; no credentials or provider access. Source: [test_executor.py](../tests/test_executor.py).
 
 | Case ID | Executable test identifier | Setup / input | Expected result |
 | --- | --- | --- | --- |
@@ -228,9 +228,63 @@ Run `python -m unittest discover -s tests -p 'test_journal.py' -v`; expect 6 pas
 | JOURNAL-005 | `test_journal.JournalTests.test_local_mapping_changed_blocks_atomic_finalization` | local mapping changed blocks atomic finalization (fake providers/SQLite) | Changed local mapping blocks atomic completion and retains pending intent without additional applied audit. |
 | JOURNAL-006 | `test_journal.JournalTests.test_restart_interrupts_execution_only_and_is_configuration_scoped` | restart interrupts execution only and is configuration scoped (fake providers/SQLite) | Restart interrupts only selected configuration’s execution runs; manual/other runs untouched. |
 
+## WORK: test_worker.py worker integration
+
+Run `python -m unittest discover -s tests -p 'test_worker.py' -v`; expect 18 passing tests. Local fakes/temporary files and controlled child processes only; no real credentials/provider requests. Temporary resources and signal handlers are cleaned up. Source: [test_worker.py](../tests/test_worker.py).
+
+| Case ID | Executable test identifier | Setup / input | Expected result |
+| --- | --- | --- | --- |
+| WORK-001 | `test_worker.WorkerTests.test_settings_default_dry_run_and_no_secret_file_access` | settings default dry run and no secret file access | Default dry-run/loopback settings validated without opening credentials; repr omits private paths. |
+| WORK-002 | `test_worker.WorkerTests.test_settings_reject_ambiguous_paths_booleans_ids_and_interval_bounds` | settings reject ambiguous paths booleans ids and interval bounds | Missing settings, literal $PWD/relative paths, ambiguous booleans, primary alias, invalid intervals and collisions with credentials/locks/SQLite sidecars rejected before network. |
+| WORK-003 | `test_worker.WorkerTests.test_settings_require_exact_origin_and_explicit_loopback_opt_in` | settings require exact origin and explicit loopback opt in | HTTP requires exact trusted loopback origin and explicit opt-in; LAN/secret-bearing origins refused. |
+| WORK-004 | `test_worker.WorkerTests.test_once_dry_run_real_executor_writes_no_applied_state` | once dry run real executor writes no applied state | Real executor preview creates configuration only; zero provider PUT/applied history; recent dry-run health succeeds. |
+| WORK-005 | `test_worker.WorkerTests.test_live_restart_reuses_configuration_mapping_and_remote_identity` | live restart reuses configuration mapping and remote identity | Live fake execution then restart reuses one configuration/mapping/URL; one remote PUT total. |
+| WORK-006 | `test_worker.WorkerTests.test_changed_calendar_or_credential_reference_refused_before_network` | changed calendar or credential reference refused before network | Changed calendar or credential reference fails before provider reads and cannot reset ownership state. |
+| WORK-007 | `test_worker.WorkerTests.test_competing_worker_does_not_touch_active_health_file` | competing worker does not touch active health file | Competing database owner rejected; existing health file unchanged. |
+| WORK-008 | `test_worker.WorkerTests.test_polling_backoff_is_jittered_bounded_and_resets_after_success` | polling backoff is jittered bounded and resets after success | Failure streak delays 11/22/40/40 seconds under deterministic jitter, resets to 11 on success; stop writes stopped; logs redact raw exceptions. |
+| WORK-009 | `test_worker.WorkerTests.test_failed_cycle_once_returns_unhealthy_and_next_invocation_recovers` | failed cycle once returns unhealthy and next invocation recovers | Google/CalDAV Retry-After hints defer next cycle for largest hint; wait is interruptible. |
+| WORK-010 | `test_worker.WorkerTests.test_provider_retry_after_defers_next_cycle_and_can_be_interrupted` | provider retry after defers next cycle and can be interrupted | Failed one-shot exits1/unhealthy; subsequent healthy invocation recovers; upstream secret text absent. |
+| WORK-011 | `test_worker.WorkerTests.test_conflict_in_dry_or_live_report_is_unhealthy` | conflict in dry or live report is unhealthy | Conflicted dry-run or live report exits1 and is unhealthy. |
+| WORK-012 | `test_worker.WorkerTests.test_health_checks_recency_modes_permissions_and_corrupt_inputs_without_sqlite` | health checks recency modes permissions and corrupt inputs without sqlite | Health checks private0600 atomic snapshots, recency/future/NaN/corrupt/missing/starting/unhealthy/stopped cases without database access. |
+| WORK-013 | `test_worker.WorkerTests.test_health_atomic_replace_failure_preserves_previous_file` | health atomic replace failure preserves previous file | Injected atomic replace failure retains prior health snapshot and cleans temporary file. |
+| WORK-014 | `test_worker.WorkerTests.test_cli_worker_once_routes_flags_and_sanitizes_startup_errors` | cli worker once routes flags and sanitizes startup errors | Worker CLI passes once/default-dry-run and prints fixed startup code without secret diagnostics. |
+| WORK-015 | `test_worker.WorkerTests.test_cli_health_reads_status_without_configuration_or_provider_calls` | cli health reads status without configuration or provider calls | Health CLI works without calendar config/providers; invalid age settings return1. |
+| WORK-016 | `test_worker.WorkerTests.test_signals_set_stop_and_restore_prior_handlers` | signals set stop and restore prior handlers | SIGTERM/SIGINT set stop event and restore previous handlers. |
+| WORK-017 | `test_worker.WorkerTests.test_real_process_sigterm_and_sigint_stop_poll_wait_and_release_lock` | real process sigterm and sigint stop poll wait and release lock | Real child worker receives each signal during poll wait, exits0 promptly, marks stopped and releases database lock. |
+| WORK-018 | `test_worker.WorkerTests.test_google_retry_sleep_is_interruptible_without_waiting_for_backoff` | google retry sleep is interruptible without waiting for backoff | Google retry sleeper wakes immediately on shutdown rather than waiting its backoff. |
+
+## EXEC: test_executor.py worker integration
+
+Run `python -m unittest discover -s tests -p 'test_executor.py' -v`; expect 30 passing tests. Local fakes/temporary files and controlled child processes only; no real credentials/provider requests. Temporary resources and signal handlers are cleaned up. Source: [test_executor.py](../tests/test_executor.py).
+
+| Case ID | Executable test identifier | Setup / input | Expected result |
+| --- | --- | --- | --- |
+| EXEC-026 | `test_executor.ExecutorTests.test_stop_before_preflight_does_not_read_or_create_run` | stop before preflight does not read or create run | Pre-set stop performs no provider reads, run or PUT. |
+| EXEC-027 | `test_executor.ExecutorTests.test_stop_after_google_preflight_does_not_start_nextcloud_read` | stop after google preflight does not start nextcloud read | Stop during Google preflight prevents starting Nextcloud read; no execution run. |
+| EXEC-028 | `test_executor.ExecutorTests.test_stop_during_source_revalidation_keeps_unattempted_intent_and_no_put` | stop during source revalidation keeps unattempted intent and no put | Stop during fresh source check preserves unattempted durable intent, no PUT, interrupted run. |
+| EXEC-029 | `test_executor.ExecutorTests.test_stop_after_put_confirms_first_write_before_stopping_remaining_events` | stop after put confirms first write before stopping remaining events | Stop after first PUT allows confirmation/mapping, then skips remaining event. |
+| EXEC-030 | `test_executor.ExecutorTests.test_rate_limited_put_defers_readback_and_other_events_until_next_invocation` | rate limited put defers readback and other events until next invocation | 429 PUT defers readback and remaining events; pending intent later reconciles/retries without duplicate mapping. |
+
+## DAV: test_caldav.py worker integration
+
+Run `python -m unittest discover -s tests -p 'test_caldav.py' -v`; expect 31 passing tests. Local fakes/temporary files and controlled child processes only; no real credentials/provider requests. Temporary resources and signal handlers are cleaned up. Source: [test_caldav.py](../tests/test_caldav.py).
+
+| Case ID | Executable test identifier | Setup / input | Expected result |
+| --- | --- | --- | --- |
+| DAV-030 | `test_caldav.CalDAVTests.test_rate_limit_cooldown_is_bounded_for_report_get_and_put` | rate limit cooldown is bounded for report get and put | REPORT/GET/PUT429 return fixed rate-limit code and retain120s hint; invalid/NaN fallback60, huge cap86400, negative zero. |
+| DAV-031 | `test_caldav.CalDAVTests.test_shutdown_stops_report_but_allows_targeted_write_confirmation` | shutdown stops report but allows targeted write confirmation | Cancelled REPORT never requests provider; targeted GET remains available for in-flight PUT confirmation. |
+
+## GCAL: test_google_calendar.py worker integration
+
+Run `python -m unittest discover -s tests -p 'test_google_calendar.py' -v`; expect 14 passing tests. Local fakes/temporary files and controlled child processes only; no real credentials/provider requests. Temporary resources and signal handlers are cleaned up. Source: [test_google_calendar.py](../tests/test_google_calendar.py).
+
+| Case ID | Executable test identifier | Setup / input | Expected result |
+| --- | --- | --- | --- |
+| GCAL-014 | `test_google_calendar.CalendarReadTests.test_shutdown_between_pages_does_not_fetch_more_or_return_partial_events` | shutdown between pages does not fetch more or return partial events | Stop set after first page aborts before requesting next page; partial source list is never returned. |
+
 ## Manual and environment cases
 
-Manual Google cases are in [google-acceptance.md](google-acceptance.md); Nextcloud cases in [nextcloud.md](nextcloud.md); planner cases in [planner.md](planner.md); execution cases EXEC-UAT-01–07 in [execution.md](execution.md). Four Google account/environment setup cases are in [google-setup.md](google-setup.md). Docker smoke and documentation review cases are in [testing.md](testing.md). Results belong in a dated [execution record](test-evidence.md), not as permanent PASS labels in this catalogue.
+Manual Google cases are in [google-acceptance.md](google-acceptance.md); Nextcloud cases in [nextcloud.md](nextcloud.md); planner cases in [planner.md](planner.md); EXEC-UAT-01–07 in [execution.md](execution.md); WORK-UAT-01–07 in [worker.md](worker.md); GOV-UAT-01–04 in [branch-protection.md](branch-protection.md). Four Google account/environment setup cases are in [google-setup.md](google-setup.md). Docker smoke and documentation review cases are in [testing.md](testing.md). Results belong in a dated [execution record](test-evidence.md), not as permanent PASS labels in this catalogue.
 
 ## Explicit coverage limits
 

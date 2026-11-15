@@ -18,3 +18,9 @@ jobs:
       - run: calendar-sync
       - run: docker build -t calendar-sync:test .
       - run: docker run --rm --network none --read-only calendar-sync:test
+      - name: Offline worker container integration
+        run: docker run --rm --network none --read-only --tmpfs /tmp:rw,mode=1777 --mount "type=bind,src=$PWD/scripts,dst=/checks,readonly" calendar-sync:test python /checks/smoke_worker.py
+      - name: Validate Compose configuration
+        run: |
+          cp .env.example .env
+          docker compose config --quiet

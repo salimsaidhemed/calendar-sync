@@ -71,6 +71,31 @@ class CalDAVTests(unittest.TestCase):
         with self.assertRaisesRegex(CalDAVError, 'caldav_response_limit'):
             self.calendar.get_resource(BASE + 'one.ics')
 
+    def test_rate_limit_cooldown_is_bounded_for_report_get_and_put(self):
+        for method, invoke in (
+            ('request', lambda: self.calendar.list_resources()),
+            ('get', lambda: self.calendar.get_resource(BASE+'one.ics')),
+            ('put', lambda: self.calendar.put_resource(BASE+'one.ics', ICS.encode(), create=True, allow_write=True))):
+            self.calendar.retry_after_seconds = 0
+            getattr(self.session, method).side_effect = [response(b'SENTINEL', 429, {'Retry-After': '120'})]
+            with self.assertRaisesRegex(CalDAVError, '^caldav_rate_limited$'):
+                invoke()
+            self.assertEqual(self.calendar.retry_after_seconds, 120)
+        for value, expected in (('bad',60), ('NaN',60), ('999999',86400), ('-1',0)):
+            self.calendar.retry_after_seconds = 0
+            self.session.get.side_effect = [response(b'',429,{'Retry-After':value})]
+            with self.assertRaises(CalDAVError):
+                self.calendar.get_resource(BASE+'one.ics')
+            self.assertEqual(self.calendar.retry_after_seconds, expected)
+
+    def test_shutdown_stops_report_but_allows_targeted_write_confirmation(self):
+        self.calendar.should_stop = lambda: True
+        with self.assertRaisesRegex(CalDAVError, '^caldav_read_stopped$'):
+            self.calendar.list_resources()
+        self.session.request.assert_not_called()
+        self.session.get.side_effect = [response(ICS.encode(), 200, {'ETag':'"confirmed"'})]
+        self.assertEqual(self.calendar.get_resource(BASE+'one.ics').etag, '"confirmed"')
+
     def test_put_is_disabled_by_default_and_requires_one_valid_precondition(self):
         for kwargs in ({}, {'allow_write': 'true'}, {'allow_write': True},
                        {'allow_write': True, 'create': 'true'},

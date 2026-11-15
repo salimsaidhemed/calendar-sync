@@ -284,7 +284,7 @@ def build_plan(context, source_events, destination_resources, mappings=(), *,
     return SyncPlan(context, tuple(items))
 
 
-def preview_sync(store, configuration_id, google, caldav):
+def preview_sync(store, configuration_id, google, caldav, *, should_stop=lambda: False):
     from calendar_sync.google_oauth import GoogleError
 
     configuration, rows = store.planning_snapshot(configuration_id)
@@ -294,9 +294,13 @@ def preview_sync(store, configuration_id, google, caldav):
             or caldav.calendar_url != context.destination_calendar_url):
         raise PlanningError('planner_provider_scope_mismatch')
     try:
+        if should_stop():
+            raise PlanningError('planner_stopped')
         sources = google.list_events()
+        if should_stop():
+            raise PlanningError('planner_stopped')
         resources = caldav.list_resources()
-    except (GoogleError, CalDAVError):
+    except (GoogleError, CalDAVError, PlanningError):
         raise
     except Exception:
         raise PlanningError('planner_provider_read_failed') from None
