@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tcadc-calendar-sync"
-version = "0.1.0.dev0"
-description = "Google Workspace to Nextcloud calendar sync repository foundation"
+version = "0.1.0"
+description = "Safe one-way Google Calendar to Nextcloud sync worker"
 requires-python = ">=3.12"
 dependencies = [
     "google-auth>=2.40,<3",

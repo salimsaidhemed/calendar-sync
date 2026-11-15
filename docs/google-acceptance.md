@@ -28,20 +28,21 @@ For UAT-09, do not delete valid fixtures solely to manufacture history. If no ca
 ```sh
 python3 -m venv .venv
 . .venv/bin/activate
-python -m pip install -e .
+python -m pip install -r requirements.lock
+python -m pip install --no-deps -e .
 python -m unittest discover -s tests -p 'test_google_*.py' -v
 python -m unittest discover -s tests -v
 python -m pip check
 ```
 
-Expected in this revision: 28 focused Google tests and 183 full-suite tests pass with `OK`; dependency checks report no broken requirements. See [the case catalogue](test-cases.md) for each case's inputs and expected assertions, and run `python scripts/check_test_catalogue.py` to detect undocumented tests. Installation needs registry access; tests use fakes without real credentials or Google requests. CI repeats the full suite on Python 3.12 and builds/smokes the Docker image.
+Expected in this revision: 28 focused Google tests and 188 full-suite tests pass with `OK`; dependency checks report no broken requirements. See [the case catalogue](test-cases.md) for each case's inputs and expected assertions, and run `python scripts/check_test_catalogue.py` to detect undocumented tests. Installation needs registry access; tests use fakes without real credentials or Google requests. CI repeats the full suite on Python 3.12 and builds/smokes the Docker image.
 
 ## UAT A: offline default and refusal of live sync
 
 Prerequisites: installation above; no credentials, Docker or test events required.
 
-1. Run `calendar-sync`. Expect exit 0 and `Calendar Sync scaffold: dry-run enabled; no providers contacted; sync not implemented.` No browser opens and no database or credential file is created.
-2. Run `SYNC_DRY_RUN=false calendar-sync`. Expect exit 2 and `Live sync is unavailable in this scaffold.` No browser opens and no calendar changes occur. This deliberate failure should not be treated as a failed acceptance test.
+1. Run `calendar-sync`. Expect exit0 and an offline configuration-check message stating no providers contacted. No browser opens and no database or credential file is created. `calendar-sync --version` reports the installed version without loading provider settings.
+2. Run `SYNC_DRY_RUN=false calendar-sync`. Expect exit2 and a message requiring the explicit worker command for live sync. No browser opens and no calendar changes occur. This deliberate refusal is a passing safety check; it does not imply the worker feature is unavailable.
 3. Run `calendar-sync authorize-google --help`. Expect exit 0 and help showing required `--client-file` and `--token-file` options, with no authorization attempt.
 
 Cleanup: none. Record each command's exit status (`echo $?` immediately afterward) and sanitized output.

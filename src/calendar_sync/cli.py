@@ -1,12 +1,14 @@
 import os
 import sys
 import argparse
+from importlib.metadata import version
 
 from calendar_sync.config import Settings
 
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="Calendar Sync")
+    parser.add_argument('--version', action='version', version='Calendar Sync ' + version('tcadc-calendar-sync'))
     subcommands = parser.add_subparsers(dest="command")
     google_auth = subcommands.add_parser("authorize-google", help="Authorize locally using a browser")
     google_auth.add_argument("--client-file", required=True)
@@ -52,9 +54,9 @@ def main(argv=None) -> int:
         print(str(error), file=sys.stderr)
         return 2
     if not settings.dry_run:
-        print("Live sync is unavailable in this scaffold.", file=sys.stderr)
+        print("Use the explicit worker command for live sync; the default command is offline.", file=sys.stderr)
         return 2
-    print("Calendar Sync scaffold: dry-run enabled; no providers contacted; sync not implemented.")
+    print("Calendar Sync: offline configuration check passed; dry-run enabled; no providers contacted. Use calendar-sync worker to sync.")
     return 0
 
 

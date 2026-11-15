@@ -1,6 +1,7 @@
 import contextlib
 import io
 import unittest
+from importlib.metadata import version
 from unittest.mock import patch
 
 from calendar_sync.cli import main
@@ -31,4 +32,15 @@ class SafetyTests(unittest.TestCase):
         with patch.dict("os.environ", {}, clear=True):
             with contextlib.redirect_stdout(output):
                 self.assertEqual(main([]), 0)
-        self.assertIn("sync not implemented", output.getvalue())
+        self.assertIn("offline configuration check passed", output.getvalue())
+        self.assertIn("no providers contacted", output.getvalue())
+
+    def test_version_exits_without_loading_settings_or_contacting_providers(self):
+        output = io.StringIO()
+        with patch('calendar_sync.cli.Settings.from_env') as settings, patch('requests.Session') as session:
+            with contextlib.redirect_stdout(output), self.assertRaises(SystemExit) as caught:
+                main(['--version'])
+        self.assertEqual(caught.exception.code, 0)
+        self.assertEqual(output.getvalue().strip(), 'Calendar Sync ' + version('tcadc-calendar-sync'))
+        settings.assert_not_called()
+        session.assert_not_called()

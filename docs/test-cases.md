@@ -4,19 +4,20 @@ Every discovered unit test has a stable case ID below. IDs refer to tests, not a
 
 ## Shared procedure
 
-Use the environment setup in [testing.md](testing.md). All 183 tests use temporary/fake state; none needs real credentials or provider requests. Run `python -m unittest discover -s tests -v` for the complete suite. To execute a row, use `python -m unittest discover -s tests -k '<full test identifier from the row>' -v`; expect exactly one test with `OK`. Prerequisites and cleanup are shared: Python 3.12+, installed project dependencies, local filesystem on Linux/macOS; temporary files are cleaned automatically. Expected exception assertions count as passing tests, not user-visible failures.
+Use the environment setup in [testing.md](testing.md). All 188 tests use temporary/fake state; none needs real credentials or provider requests. Run `python -m unittest discover -s tests -v` for the complete suite. To execute a row, use `python -m unittest discover -s tests -k '<full test identifier from the row>' -v`; expect exactly one test with `OK`. Prerequisites and cleanup are shared: Python 3.12+, installed project dependencies, local filesystem on Linux/macOS; temporary files are cleaned automatically. Expected exception assertions count as passing tests, not user-visible failures.
 
 ## CFG: test_scaffold.py
 
-Source: [test_scaffold.py](../tests/test_scaffold.py). Run this group with `python -m unittest discover -s tests -p 'test_scaffold.py' -v`; expect 5 passing tests.
+Source: [test_scaffold.py](../tests/test_scaffold.py). Run this group with `python -m unittest discover -s tests -p 'test_scaffold.py' -v`; expect 6 passing tests.
 
 | Case ID | Executable test identifier | Setup / input | Expected result |
 | --- | --- | --- | --- |
 | CFG-001 | `test_scaffold.SafetyTests.test_defaults_are_dry_run` | Empty environment | Dry-run is true. |
 | CFG-002 | `test_scaffold.SafetyTests.test_ambiguous_boolean_rejected` | Empty/yes/1/misspelled boolean values | Each raises ValueError; none enables live mode. |
 | CFG-003 | `test_scaffold.SafetyTests.test_insecure_or_secret_bearing_urls_rejected` | HTTP, credentials, query, fragment or missing host | Every unsafe URL is rejected. |
-| CFG-004 | `test_scaffold.SafetyTests.test_live_mode_fails_closed` | SYNC_DRY_RUN=false | CLI exits 2 and refuses live sync. |
-| CFG-005 | `test_scaffold.SafetyTests.test_scaffold_reports_no_sync` | Default CLI environment | CLI exits 0 and explicitly reports sync not implemented. |
+| CFG-004 | `test_scaffold.SafetyTests.test_live_mode_fails_closed` | SYNC_DRY_RUN=false with bare default command | Exit2; explicit worker command required; no provider sync. |
+| CFG-005 | `test_scaffold.SafetyTests.test_scaffold_reports_no_sync` | Default CLI environment | Exit0; accurate offline configuration-check status and no providers contacted. |
+| CFG-006 | `test_scaffold.SafetyTests.test_version_exits_without_loading_settings_or_contacting_providers` | Version flag with mocked settings/provider sessions | Exit0 and installed package version; settings and network session never used. |
 
 ## STATE: test_state.py
 
@@ -318,6 +319,17 @@ Run `python -m unittest discover -s tests -p 'test_operations_docs.py' -v`; expe
 | --- | --- | --- | --- |
 | DOCOPS-001 | `test_operations_docs.OperationsDocsTests.test_documented_relocation_preserves_mapping_history_and_other_configuration` | Execute documented relocation on selected configuration, fake private new credential paths | Only selected credential refs change; mappings, audit and other configuration remain unchanged. |
 | DOCOPS-002 | `test_operations_docs.OperationsDocsTests.test_documented_relocation_rolls_back_wrong_old_reference_and_refuses_calendar_change` | Wrong second old reference, then changed calendar identity | First update rolls back on second-row mismatch; changed calendar refused; complete state dump unchanged. |
+
+## PKG: test_release.py
+
+Run `python -m unittest discover -s tests -p 'test_release.py' -v`; expect 4 passes after installing requirements.lock and the source package. Temporary lock files and stubbed publication commands only, no credentials/network; automatic cleanup. Source: [test_release.py](../tests/test_release.py).
+
+| Case ID | Executable test identifier | Setup / input | Expected result |
+| --- | --- | --- | --- |
+| PKG-001 | `test_release.ReleaseTests.test_runtime_lock_matches_installed_release_and_all_direct_dependencies` | Real source metadata, runtime lock and installed packages | All 19 pins/direct dependencies and app version match. |
+| PKG-002 | `test_release.ReleaseTests.test_unpinned_duplicate_and_incomplete_locks_are_rejected` | Unpinned version, normalized duplicate name or missing required dependency | Fixed invalid/missing-dependency failure, no silent acceptance. |
+| PKG-003 | `test_release.ReleaseTests.test_wrong_installed_version_or_missing_package_emits_fixed_code_only` | Mock wrong requests version or missing package with sentinel error | Exit2/fixed code; no raw exception/private sentinel. |
+| PKG-004 | `test_release.ReleaseTests.test_documented_publication_stops_on_tag_push_or_remote_identity_failure` | Execute documented publication with fake Git/GitHub commands across seven scenarios | Existing tags, tag/push failures and wrong/unreadable remote SHA prevent publication; only verified success publishes. No actual tags/releases created. |
 
 ## Manual and environment cases
 

@@ -7,14 +7,15 @@ Issue #12 adds a pure planner and optional read-only provider preview. It never 
 From the repository root on Linux/macOS with Python 3.12+ and the virtual environment activated:
 
 ```sh
-python -m pip install -e .
+python -m pip install -r requirements.lock
+python -m pip install --no-deps -e .
 python -m unittest discover -s tests -p 'test_planner.py' -v
 python scripts/check_test_catalogue.py
 python -m unittest discover -s tests -v
 python -m pip check
 ```
 
-Expected: 23 planner/preview tests, 183 total tests, 183 discovered test IDs documented once, and no broken dependencies. [PLAN-001–023](test-cases.md#plan-test_plannerpy) describe inputs/expected results. Tests use local dictionaries, generated iCalendar, fake readers and temporary SQLite. They require no credentials or provider access.
+Expected: 23 planner/preview tests, 188 total tests, 188 discovered test IDs documented once, and no broken dependencies. [PLAN-001–023](test-cases.md#plan-test_plannerpy) describe inputs/expected results. Tests use local dictionaries, generated iCalendar, fake readers and temporary SQLite. They require no credentials or provider access.
 
 ## Inputs and deterministic identity
 

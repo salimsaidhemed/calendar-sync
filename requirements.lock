@@ -1,0 +1,22 @@
+# Runtime versions validated for the v0.1.0 worker on Python 3.12 Linux.
+# Explicit version pins, not wheel hashes or a pin of OS/build dependencies.
+# Record the final image ID/digest; build from an approved source commit.
+certifi==2026.10.23
+cffi==2.1.1
+charset-normalizer==3.5.2
+cryptography==50.0.2
+defusedxml==0.7.1
+google-auth==2.62.1
+google-auth-oauthlib==1.5.0
+icalendar==7.3.0
+idna==3.20
+oauthlib==4.0.1
+pyasn1==0.6.5
+pyasn1-modules==0.4.2
+pycparser==3.12
+python-dateutil==4.0.0
+requests==2.34.2
+requests-oauthlib==2.0.0
+typing-extensions==4.16.0
+tzdata==2026.6
+urllib3==2.8.0

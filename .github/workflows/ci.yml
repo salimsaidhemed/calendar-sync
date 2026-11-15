@@ -12,11 +12,21 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: python -m pip install -e .
+      - run: python -m pip install -r requirements.lock
+      - run: python -m pip install --no-deps -e .
+      - run: python scripts/check_runtime_lock.py
+      - run: python -m pip check
       - run: python scripts/check_test_catalogue.py
       - run: python -m unittest discover -s tests -v
       - run: calendar-sync
-      - run: docker build -t calendar-sync:test .
+      - run: calendar-sync --version
+      - run: docker build --build-arg VCS_REF=${{ github.sha }} -t calendar-sync:test .
+      - run: docker run --rm --network none --read-only calendar-sync:test calendar-sync --version
+      - run: docker run --rm --network none --read-only calendar-sync:test python scripts/check_runtime_lock.py
+      - name: Check release image labels
+        run: |
+          test "$(docker image inspect calendar-sync:test --format '{{ index .Config.Labels "org.opencontainers.image.version" }}')" = "$(python -c "from importlib.metadata import version; print(version('tcadc-calendar-sync'))")"
+          test "$(docker image inspect calendar-sync:test --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}')" = "$GITHUB_SHA"
       - run: docker run --rm --network none --read-only calendar-sync:test
       - name: Offline worker container integration
         run: docker run --rm --network none --read-only --tmpfs /tmp:rw,mode=1777 --mount "type=bind,src=$PWD/scripts,dst=/checks,readonly" calendar-sync:test python /checks/smoke_worker.py
