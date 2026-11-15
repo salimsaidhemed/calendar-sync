@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Customer deployment guide now includes post-acceptance continuous startup, live-mode recreation, health checks, polling/restart and Docker auto-start expectations, plus maintenance stop/resume instructions that preserve state.
+- Customer deployment instructions now show how to obtain and verify the approved main SHA, check required files before checkout, build the matching image tag, and set one CUSTOMER_SYNC_IMAGE entry without duplicate appends.
 - Compose now explicitly starts the continuous worker, with mounted credential directories, persistent state, health checks, 120-second stop grace and restart unless stopped; the bare image/CLI remains an offline check.
 - Main ruleset now requires the verified GitHub Actions test check and an up-to-date branch, preserving existing PR/deletion/force-push safeguards. Documented the current public visibility and unresolved shared-author/owner approval boundary (#8).
 - Google/CalDAV reads support cooperative shutdown; provider Retry-After hints defer worker cycles. SQLite fixture connections now close explicitly to avoid Python 3.14 resource warnings.
@@ -14,6 +16,10 @@
 
 ### Added
 
+- Customer-facing Google Workspace production deployment guide with approved-commit/image selection, administrator setup, secure workstation-to-server credential transfer, Linux/Docker commands, dry-run/live decisions, recovery handover and nine explicit customer acceptance cases; no customer deployment performed.
+- Setup/operations runbook covering personal/Workspace authorization, exact calendar selection, private runtime credentials, preview-to-live decisions, scoped credential-path relocation, backups, isolated restore/rollback and explicit retention/lost-state/conflict limits (#16).
+- Quiesced SQLite snapshot helper with private verified backups, lock/overwrite/sidecar protections, v1/v2 preservation and isolated restore tests; no remote writes, state reset or automatic adoption.
+- Checked-in standalone local Docker UAT template and complete credential preparation/Google renewal instructions, plus sanitized owner-reported worker evidence with visual/commit/production gaps left explicit.
 - Continuous worker/one-cycle and health CLI commands with strict configuration, dry-run defaults, lifetime state locking, private atomic health snapshots, jittered polling/backoff and graceful SIGTERM/SIGINT handling.
 - Worker/signal/rate-limit/health tests, offline real-engine container smoke, Compose validation in CI and complete worker setup/acceptance cases.
 - Opt-in conditional Nextcloud executor with complete preflight, ownership revalidation, create/update preconditions, confirmed readback and no delete path; library dry-run remains the default and the CLI stays offline.

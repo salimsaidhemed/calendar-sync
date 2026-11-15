@@ -1,0 +1,22 @@
+# Worker UAT evidence summary
+
+Recorded 15 November 2026 from sanitized terminal output/screenshots supplied by the repository owner during the worker review. These are **user-reported manual results**, not agent-executed live tests. Exact execution timestamps, account class, tested commit/local diff and final visual confirmations were not supplied. The terminal showed feature/15-worker-and-8-protection with a dirty-working-tree marker, so these results cannot be attributed unconditionally to the PR's exact head SHA.
+
+Two fixture variants were used: native tests used an existing Google calendar with two supported events, one recurring master and three cancellation records; isolated Docker tests later used **new Google and Nextcloud calendars with two ordinary events and no expected skips**. Do not mix their counts. No real calendar IDs, paths, tokens/passwords or event contents are included here.
+
+| Case / subcase | Observed result | Evidence status / remaining check |
+| --- | --- | --- |
+| WORK-UAT-02 native preview | Owner reported successful one-cycle dry-run/health after repairing stored credential-path references. Later preview showed create2/unsupported4, reasons recurrence1/cancelled3. | Passed reported runtime check. Exact account/setup path unreported. |
+| WORK-UAT-03 continuous / Ctrl-C | Three stable healthy dry-run cycles; worker exit0, stopped health1. | Passed reported runtime check. |
+| WORK-UAT-04 competing worker / SIGTERM | Second worker failed startup with exit2, first continued healthy/health0; SIGTERM then wait returned0, stopped health1. | Passed reported runtime check. |
+| WORK-UAT-05 native create/repeat | Live applied2, then applied0/unchanged2; skipped4, no conflict/pending, healthy. Dry-run exported true afterward. | Passed reported create/repeat check. Native visual date/type/single-copy confirmation not supplied. |
+| WORK-UAT-06 conflict | Owner first edited an unrelated recurring fixture (no effect on managed copies), then edited a synced copy: applied0/conflict1/unchanged1/skipped4, unhealthy; worker1/health1; dry-run restored. | Passed reported conflict/health check. Edited-title preservation after the cycle remains unconfirmed. No conflict was cleared/reset. |
+| DOCKER-UAT-02 credential preparation | Owner's diagnostics: both copied files owned by effective user and private; Nextcloud read returned0 resources. | File-permission/read evidence supplied. Actual template then was the standalone local UAT kit, not this newly committed example path. |
+| DOCKER-UAT-04 Google renewal | First container read failed google_refresh_or_storage_failed. After deliberate workstation reauthorization and Google-copy replacement, reads succeeded. | Recovery reported; expiry was a possibility, not proven root cause. No state reset was used. |
+| DOCKER-UAT-03 empty source then fixtures | Initially all-zero healthy preview; owner confirmed new empty source/destination calendars. After creating fixtures, create2/unsupported0/conflict0, dry-run true/healthy. | Passed reported fixture preview; demonstrates health alone is not fixture acceptance. |
+| WORK-UAT-05 / 07 Docker create/repeat | Continuous live cycle applied2, then repeated unchanged2/applied0, no skips/conflicts/pending, healthy. | Passed reported runtime check. Visual dates/types/duplicate count not supplied. |
+| WORK-UAT-05 / 07 restart/health/stop | Restart followed by multiple unchanged2/applied0 healthy cycles; health0; graceful stop showed Exited(0). Log-viewer Ctrl-C returned130 while worker continued. | Passed reported persistence/health/shutdown check. Direct mapping-count query not supplied. |
+| WORK-UAT-07 cleanup | Instructions requested SYNC_DRY_RUN=true after final stop, preserving volumes. | Confirmation of final environment-file restoration not supplied. |
+| Production authorization/restore/release | No production setup, production backup/restore, remote conflict repair or release sign-off evidence supplied. | Not run; production account paths are not applicable to these disposable fixture tests. |
+
+The runtime checks support the worker feature; they do not fill missing visual/cleanup evidence or declare the release ready. Keep the original conflict calendar/database and isolated Docker state separate. Complete the remaining confirmations in the PR's [test evidence record](test-evidence.md), including tested SHA/local changes and chosen account/setup path. Do not attach raw provider responses, credential files or calendar IDs to a public issue.

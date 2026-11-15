@@ -41,6 +41,8 @@ SIGTERM/SIGINT request a graceful stop and wake poll/retry waits. Reads check be
 
 ## Docker Compose setup
 
+For the complete local Docker test, including Mac-safe credential copies, isolated volumes, token renewal and two-fixture expectations, follow [docker-uat.md](docker-uat.md). Its standalone manifest is [examples/uat/compose.yaml](../examples/uat/compose.yaml). Production setup/backup/restore and credential-reference relocation are in [operations.md](operations.md). The local UAT template is not a production host-network/HTTP recommendation.
+
 The image runs as UID/GID 10001. Compose uses a read-only root filesystem, temporary `/tmp`, persistent named `/data` volume, no extra capabilities, no-new-privileges, an init process, health checking and `restart: unless-stopped`. It mounts only `secrets/google` writable (atomic refresh/lock creation), and `secrets/nextcloud` read-only. Never mount the whole credential workspace or bake secrets into the image.
 
 1. Follow the selected personal/Workspace testing or production authorization path in [Google setup](google-setup.md) and exact calendar/app-password selection in [Nextcloud setup](nextcloud.md). Desktop OAuth runs on your workstation before starting Docker; the worker never launches a browser.
@@ -90,11 +92,11 @@ docker run --rm --network none --read-only calendar-sync:worker-test
 docker run --rm --network none --read-only --tmpfs /tmp:rw,mode=1777 --mount "type=bind,src=$PWD/scripts,dst=/checks,readonly" calendar-sync:worker-test python /checks/smoke_worker.py
 ```
 
-Expected: 18 worker tests, 30 executor tests, 167 total tests and 167 exactly catalogued IDs pass. The fake integration script reports dry-run, one conditional create and unchanged after restart, with one mapping/resource total and working health. It uses no credential files or provider network, cleans temporary state automatically, and can run under container UID 10001. Docker build needs registry access; offline checks run with network disabled. CI repeats unit/catalogue, image build/offline integration and Compose configuration checks.
+Expected: 18 worker tests, 30 executor tests, 183 total tests and 183 exactly catalogued IDs pass. The fake integration script reports dry-run, one conditional create and unchanged after restart, with one mapping/resource total and working health. It uses no credential files or provider network, cleans temporary state automatically, and can run under container UID 10001. Docker build needs registry access; offline checks run with network disabled. CI repeats unit/catalogue, image build/offline integration and Compose configuration checks.
 
 ## User acceptance cases
 
-Record each case separately using [test-evidence.md](test-evidence.md). Automated/fake tests do not establish live interoperability. At implementation time, all live worker cases are **Not run**; credential-free automated procedures are separate evidence.
+Record each case separately using [test-evidence.md](test-evidence.md). Automated/fake tests do not establish live interoperability. [User-reported runtime results](worker-uat-evidence.md) now cover native and isolated Docker cycles/restart/health; visual, exact-commit/account and cleanup confirmations remain explicitly separate. No agent-executed live or production acceptance is claimed.
 
 | Case | Prerequisites, action and observable result | Coverage |
 | --- | --- | --- |

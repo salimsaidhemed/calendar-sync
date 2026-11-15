@@ -1,0 +1,97 @@
+# Standalone local UAT only. Always use the same -p calendar-sync-uat07.
+services:
+  prepare-credentials:
+    profiles: [setup]
+    image: calendar-sync:uat
+    user: "0:0"
+    network_mode: none
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - type: bind
+        source: ${UAT_GOOGLE_TOKEN_SOURCE:?Set UAT_GOOGLE_TOKEN_SOURCE in examples/uat/.env}
+        target: /input/google-token.json
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${UAT_NEXTCLOUD_PASSWORD_SOURCE:?Set UAT_NEXTCLOUD_PASSWORD_SOURCE in examples/uat/.env}
+        target: /input/nextcloud-password
+        read_only: true
+        bind:
+          create_host_path: false
+      - google-credentials:/output/google
+      - nextcloud-credentials:/output/nextcloud
+    entrypoint: [python, -c]
+    command:
+      - |
+        import os, shutil
+        from pathlib import Path
+        files = [('/input/google-token.json', '/output/google/token.json'),
+                 ('/input/nextcloud-password', '/output/nextcloud/password')]
+        for source, target in files:
+            if not Path(source).is_file() or Path(source).stat().st_size == 0:
+                raise SystemExit('Source credential file missing or empty')
+            if Path(target).exists():
+                raise SystemExit('Credentials already initialized; do not overwrite refreshed tokens')
+        for source, target in files:
+            parent = Path(target).parent
+            os.chown(parent, 10001, 10001)
+            os.chmod(parent, 0o700)
+            descriptor = os.open(target, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+            with os.fdopen(descriptor, 'wb') as destination, open(source, 'rb') as origin:
+                shutil.copyfileobj(origin, destination)
+                destination.flush()
+                os.fsync(destination.fileno())
+                os.fchown(destination.fileno(), 10001, 10001)
+        print('PASS: private container credential copies initialized; originals unchanged')
+
+  worker:
+    image: calendar-sync:uat
+    build:
+      context: ../..
+    command: [calendar-sync, worker]
+    user: "10001:10001"
+    # Verified route on Colima when Nextcloud is published on this engine's 8090.
+    # Host means the Colima Linux VM, not an arbitrary service on macOS.
+    network_mode: host
+    restart: unless-stopped
+    stop_grace_period: 120s
+    read_only: true
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    environment:
+      SYNC_DRY_RUN: ${SYNC_DRY_RUN:-true}
+      SYNC_CONFIGURATION_ID: worker-docker-uat
+      SYNC_POLL_SECONDS: "10"
+      SYNC_MAX_BACKOFF_SECONDS: "60"
+      SYNC_HEALTH_MAX_AGE_SECONDS: "120"
+      SYNC_STATE_FILE: /data/calendar-sync.sqlite3
+      SYNC_HEALTH_FILE: /data/health.json
+      GOOGLE_CALENDAR_ID: ${GOOGLE_CALENDAR_ID:?Set GOOGLE_CALENDAR_ID in examples/uat/.env}
+      GOOGLE_TOKEN_FILE: /run/secrets/google/token.json
+      NEXTCLOUD_URL: http://localhost:8090
+      NEXTCLOUD_CALENDAR_URL: ${NEXTCLOUD_CALENDAR_URL:?Set the new empty UAT calendar URL in examples/uat/.env}
+      NEXTCLOUD_USERNAME: ${NEXTCLOUD_USERNAME:-admin}
+      NEXTCLOUD_PASSWORD_FILE: /run/secrets/nextcloud/password
+      NEXTCLOUD_ALLOW_HTTP_LOOPBACK: "true"
+    volumes:
+      - worker-state:/data
+      - google-credentials:/run/secrets/google
+      - nextcloud-credentials:/run/secrets/nextcloud:ro
+    healthcheck:
+      test: [CMD, calendar-sync, health]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  worker-state:
+  google-credentials:
+  nextcloud-credentials:

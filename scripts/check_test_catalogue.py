@@ -3,10 +3,12 @@
 from collections import Counter
 from pathlib import Path
 import re
+import sys
 import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 
 
 def test_ids(suite):
