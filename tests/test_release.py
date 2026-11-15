@@ -76,9 +76,12 @@ esac
             for scenario in ('local-existing', 'remote-existing', 'tag-failure', 'push-failure',
                              'wrong-remote', 'readback-failure', 'success'):
                 log.unlink(missing_ok=True)
-                environment = dict(os.environ, PATH=str(root)+os.pathsep+os.environ.get('PATH',''),
+                environment = dict(os.environ, FAKE_GIT=str(fake_git), FAKE_GH=str(fake_gh),
                     EXPECTED_SHA='a'*40, RELEASE_SHA='a'*40, SCENARIO=scenario, PUBLISH_LOG=str(log))
-                result = subprocess.run(['sh'], input=block, env=environment, text=True,
+                # Invoke stubs through the shell: hardened containers can mount /tmp noexec.
+                stubs = 'git() { sh "$FAKE_GIT" "$@"; }; gh() { sh "$FAKE_GH" "$@"; };\n'
+                result = subprocess.run(['sh'], input=stubs+block, env=environment, text=True,
                                         capture_output=True, timeout=10)
-                self.assertEqual(result.returncode == 0, scenario == 'success', scenario)
+                self.assertEqual(result.returncode == 0, scenario == 'success',
+                                 (scenario, result.returncode, result.stderr))
                 self.assertEqual(log.exists(), scenario == 'success', scenario)
