@@ -14,6 +14,7 @@
 
 ### Added
 
+- Customer-facing Google Workspace production deployment guide with approved-commit/image selection, administrator setup, secure workstation-to-server credential transfer, Linux/Docker commands, dry-run/live decisions, recovery handover and nine explicit customer acceptance cases; no customer deployment performed.
 - Setup/operations runbook covering personal/Workspace authorization, exact calendar selection, private runtime credentials, preview-to-live decisions, scoped credential-path relocation, backups, isolated restore/rollback and explicit retention/lost-state/conflict limits (#16).
 - Quiesced SQLite snapshot helper with private verified backups, lock/overwrite/sidecar protections, v1/v2 preservation and isolated restore tests; no remote writes, state reset or automatic adoption.
 - Checked-in standalone local Docker UAT template and complete credential preparation/Google renewal instructions, plus sanitized owner-reported worker evidence with visual/commit/production gaps left explicit.

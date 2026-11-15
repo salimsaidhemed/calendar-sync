@@ -1,6 +1,6 @@
 # Setup, backup and recovery runbook
 
-Issue #16 completes the operating instructions for the one-master worker. It does not release v0.1.0, introduce a UI, or establish production acceptance. The worker dependency is PR #30; this guide is initially reviewed as a stacked change until that PR reaches main. Release/safety sign-off remains #14 and independent reviewer identity remains #8.
+Issue #16 completes the operating instructions for the one-master worker. It does not release v0.1.0, introduce a UI, or establish production acceptance. The worker dependency, PR #30, is merged; the operations PR now targets main for owner review. For a customer-controlled Workspace deployment use [customer-production-deployment.md](customer-production-deployment.md). Release/safety sign-off remains #14 and independent reviewer identity remains #8.
 
 ## Deployment checklist — OPS-UAT-01
 

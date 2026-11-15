@@ -32,7 +32,7 @@ That command explicitly runs the offline check. For continuous operation, prepar
 
 ## Development workflow
 
-For deployment, start with [the setup/backup/recovery runbook](docs/operations.md). [Reproducible Docker UAT](docs/docker-uat.md) provides the checked-in local test template, private credential-volume preparation, token renewal and exact fixture/restart checks. [Reported worker acceptance evidence](docs/worker-uat-evidence.md) separates observed runtime checks from missing visual/production confirmations.
+For a Google Workspace customer, use [the customer production deployment guide](docs/customer-production-deployment.md), covering administrator authorization, Linux/Docker setup, secure credential transfer, dry-run/live activation and handover. [The setup/backup/recovery runbook](docs/operations.md) provides detailed recovery procedures. [Reproducible Docker UAT](docs/docker-uat.md) supplies the isolated local test template; [reported worker evidence](docs/worker-uat-evidence.md) separates observed runtime checks from missing customer/visual confirmations.
 
 Start with [Google setup by account/environment](docs/google-setup.md) and [the testing guide](docs/testing.md). The [automated catalogue](docs/test-cases.md) covers every discovered unit test; the [manual acceptance guide](docs/google-acceptance.md) defines exact event fixtures and individual UAT cases. Production Google authorization preparation is documented separately from the still-incomplete production sync worker.
 
