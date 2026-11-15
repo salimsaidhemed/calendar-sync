@@ -4,6 +4,7 @@
 
 ### Changed
 
+- Customer deployment instructions now show how to obtain and verify the approved main SHA, check required files before checkout, build the matching image tag, and set one CUSTOMER_SYNC_IMAGE entry without duplicate appends.
 - Compose now explicitly starts the continuous worker, with mounted credential directories, persistent state, health checks, 120-second stop grace and restart unless stopped; the bare image/CLI remains an offline check.
 - Main ruleset now requires the verified GitHub Actions test check and an up-to-date branch, preserving existing PR/deletion/force-push safeguards. Documented the current public visibility and unresolved shared-author/owner approval boundary (#8).
 - Google/CalDAV reads support cooperative shutdown; provider Retry-After hints defer worker cycles. SQLite fixture connections now close explicitly to avoid Python 3.14 resource warnings.

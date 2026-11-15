@@ -93,19 +93,32 @@ cd /opt/calendar-sync
 
 If the directory already contains an installation, stop and use the controlled upgrade/recovery procedure rather than cloning over it or resetting its volumes. Docker access must be approved for this operator. Keep the deployment directory/configuration private; do not run commands that print all secrets/environment data.
 
-Select the full approved SHA privately supplied through your change process, ensuring it is on main and includes the worker and reviewed recovery helper:
+### Where to get the SHA
+
+A SHA is Git's commit identifier, not a separate download or Docker image ID. On the customer server, fetch main and print its full current commit:
 
 ```sh
-export CUSTOMER_SYNC_COMMIT='REPLACE_WITH_APPROVED_FULL_MAIN_COMMIT_SHA'
+cd /opt/calendar-sync
 git fetch origin
-git cat-file -e "${CUSTOMER_SYNC_COMMIT}^{commit}"
-git merge-base --is-ancestor "$CUSTOMER_SYNC_COMMIT" origin/main
-git checkout --detach "$CUSTOMER_SYNC_COMMIT"
-test -f src/calendar_sync/worker.py
-test -f scripts/state_snapshot.py
+export CUSTOMER_SYNC_COMMIT="$(git rev-parse origin/main)"
+echo "$CUSTOMER_SYNC_COMMIT"
+git show --no-patch --format=fuller "$CUSTOMER_SYNC_COMMIT"
 ```
 
-Do not continue if a guard fails. Do not invent a v0.1.0 tag before the release is approved. Pin the selected commit/image in the protected deployment record; current dependency/base-image ranges still require recording the built artifact. Future builds of the same source may resolve different dependency/base-image versions.
+The printed value is normally 40 hexadecimal characters. In GitHub, compare it with the commit shown for main and confirm the owner's reviewed PRs #30 and #31 are merged into that version. **Latest main is a candidate, not automatic deployment approval.** If your change process approved an older main commit, set CUSTOMER_SYNC_COMMIT to that full approved SHA instead. Do not use a feature-branch SHA, a PR number, an image ID or the literal REPLACE placeholder.
+
+Verify the selected commit is on fetched main and contains the worker/recovery files **before** changing the checkout:
+
+```sh
+git cat-file -e "${CUSTOMER_SYNC_COMMIT}^{commit}"
+git merge-base --is-ancestor "$CUSTOMER_SYNC_COMMIT" origin/main
+git cat-file -e "${CUSTOMER_SYNC_COMMIT}:src/calendar_sync/worker.py"
+git cat-file -e "${CUSTOMER_SYNC_COMMIT}:scripts/state_snapshot.py"
+git checkout --detach "$CUSTOMER_SYNC_COMMIT"
+git rev-parse HEAD
+```
+
+The final HEAD value must equal CUSTOMER_SYNC_COMMIT. These guards verify ancestry/file presence, not owner approval. If #31 is not merged, the recovery-file check can fail: wait for the reviewed main version rather than deploying its unmerged branch. Do not continue after any failed guard or discard local changes to force checkout. Do not invent a v0.1.0 tag before the release is approved. Record this exact SHA and the built image ID privately; current dependency/base-image ranges mean future builds of the same source may resolve different dependencies/base images.
 
 ## 5. Transfer and install credentials securely — CUSTOMER-UAT-05
 
@@ -185,14 +198,18 @@ NEXTCLOUD_ALLOW_HTTP_LOOPBACK=false
 
 If the customer uses another trusted Nextcloud HTTPS origin, set both origin and collection consistently. Set the **container** paths above, not workstation paths. Keep the same project name/configuration ID/calendar identities/state volume on every start. A different namespace creates independent identities/copies; it is not an error-recovery mechanism.
 
-Build an explicitly tagged local image from the approved source, then add the exact tag to .env as CUSTOMER_SYNC_IMAGE:
+### Build and set the image
+
+An image is built locally from the approved checkout; no registry push is needed when building and running on the same server. In the same shell used to select CUSTOMER_SYNC_COMMIT, verify HEAD and build a tag containing that exact SHA:
 
 ```sh
+test "$(git rev-parse HEAD)" = "${CUSTOMER_SYNC_COMMIT:?Select the approved SHA in section 4 first}"
 docker build -t "calendar-sync:customer-${CUSTOMER_SYNC_COMMIT}" .
-printf '\nCUSTOMER_SYNC_IMAGE=calendar-sync:customer-%s\n' "$CUSTOMER_SYNC_COMMIT" >> .env
+docker image inspect "calendar-sync:customer-${CUSTOMER_SYNC_COMMIT}" --format '{{.Id}}'
+printf 'CUSTOMER_SYNC_IMAGE=calendar-sync:customer-%s\n' "$CUSTOMER_SYNC_COMMIT"
 ```
 
-Do this initial addition once; do not accumulate conflicting duplicate entries. Create a local compose.customer.yaml with this reviewed override:
+Copy the printed CUSTOMER_SYNC_IMAGE line into .env, replacing any existing entry so there is **exactly one**. Keep SYNC_DRY_RUN=true for preview. The image tag contains the selected source SHA; the separately printed image ID identifies the actual built artifact. In a new shell the exported commit variable will not persist: recover the approved SHA from the deployment record and verify HEAD before rebuilding. Create a local compose.customer.yaml with this reviewed override:
 
 ```yaml
 services:
@@ -215,9 +232,10 @@ customer() {
     -f compose.yaml -f compose.customer.yaml "$@"
 }
 customer config --quiet
+customer config --images
 ```
 
-Do not commit .env, customer-specific identifiers/paths, credentials, local overrides, image manifests or database files to the public repository.
+The image listing must show the exact calendar-sync:customer-<approved-SHA> tag you built. An unset image setting or mismatched tag must be fixed before starting the service. Do not commit .env, customer-specific identifiers/paths, credentials, local overrides, image manifests or database files to the public repository.
 
 ## 7. Validate without writing events — CUSTOMER-UAT-07
 
