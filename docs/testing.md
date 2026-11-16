@@ -16,7 +16,7 @@ python -m unittest discover -s tests -v
 python -m pip check
 ```
 
-Expected: catalogue check reports 247 tests documented exactly once; full suite reports 247 tests and `OK`; no broken dependencies. The [catalogue](test-cases.md) gives focused commands, conditions and expected results for every automated case. Package installation requires registry access; the tests use fakes/temporary files and require no Google or Nextcloud credentials. Do not edit secret files to make a test pass.
+Expected: catalogue check reports 253 tests documented exactly once; full suite reports 253 tests and `OK`; no broken dependencies. The [catalogue](test-cases.md) gives focused commands, conditions and expected results for every automated case. Package installation requires registry access; the tests use fakes/temporary files and require no Google or Nextcloud credentials. Do not edit secret files to make a test pass.
 
 To copy a Python example into zsh/bash, include the opening `python - <<'PY'` and closing unindented `PY`. Python statements pasted directly into the shell produce shell parse errors. Copy the complete block, not just its middle. Activate the virtual environment and export the documented script variables in the same shell.
 
@@ -24,7 +24,7 @@ To copy a Python example into zsh/bash, include the opening `python - <<'PY'` an
 
 | Case family | Purpose | Where to find steps | Evidence required |
 | --- | --- | --- | --- |
-| CFG / STATE / OAUTH / GCAL / NORM / DAV / PLAN / EXEC / JOURNAL / WORK / SNAP / DOCOPS / PKG / CTRL / CMIG / WEB / OIDC | Each automated case, including negative paths | [247-case catalogue](test-cases.md) | Test identifier, command, runtime, result and tested commit. |
+| CFG / STATE / OAUTH / GCAL / NORM / DAV / PLAN / EXEC / JOURNAL / WORK / SNAP / DOCOPS / PKG / CTRL / CMIG / WEB / OIDC / LOCAL | Each automated case, including negative paths | [253-case catalogue](test-cases.md) | Test identifier, command, runtime, result and tested commit. |
 | UAT-01 through UAT-12 | User-visible local/Google behavior | [Manual case matrix and procedures](google-acceptance.md) | Individual case/subcase result; separate real-provider results from fake tests. |
 | NC-UAT-01 through NC-UAT-07 | Offline normalization and explicit Nextcloud reads | [Nextcloud acceptance](nextcloud.md#acceptance-cases) | Fixture controls, safe counts/reasons, permissions restored; live checks separate from fakes. |
 | PLAN-UAT-01 through PLAN-UAT-04 | Pure planning, conflicts and read-only provider previews | [Planner acceptance](planner.md#acceptance-cases) | Action counts/reasons, no applied-state changes, live reads separately evidenced. |
@@ -65,3 +65,5 @@ Snapshot-helper focused checks: `python -m unittest discover -s tests -p 'test_s
 Every issue must identify acceptance-case IDs or proposed new cases before implementation. Every PR must update the case catalogue/manual guide for changed behavior and map each acceptance criterion to its cases. Document prerequisites, inputs/fixtures, ordered actions or runnable commands, observable results including exit codes, negative/edge cases, state effects and cleanup. Mark unsupported cases explicitly rather than inventing expected behavior. Add a case when adding an automated test; preserve existing IDs and document all meaningful subcases.
 
 The catalogue checker runs in CI. It prevents uncovered discovered tests or stale/duplicate catalogue entries, but does not measure semantic coverage, execute manual UAT, verify Google setup or enforce owner approval. No additional tests are needed solely to mirror low-impact prose edits; validate examples and catalogue instead. Changes still require owner-approved feature PRs; agents never merge.
+
+For real local Keycloak container acceptance (LOCAL-KC-01–06), follow [local-keycloak.md](local-keycloak.md). Browser/customer acceptance remains a separate operator record.

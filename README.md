@@ -14,6 +14,8 @@ The [Google adapter](docs/google.md) and [Nextcloud adapter](docs/nextcloud.md) 
 
 ## Local development
 
+For a disposable Dockerized login test with its own localhost Keycloak, generated users and HTTPS, use [Local Keycloak setup and acceptance](docs/local-keycloak.md). No customer realm or provider credentials are needed.
+
 Python 3.12 or newer:
 
 ```sh

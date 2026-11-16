@@ -59,3 +59,5 @@ Two-way operation extends the Python engine; no rewrite or Java token applicatio
 ## Definition of done
 
 Each change has a linked issue, feature branch, updated documentation and changelog, verification evidence, and an owner-approved PR. Only the owner merges. Epic completion requires all child issues to be verified; creating the scaffold does not complete the release.
+
+Local web acceptance tooling: [#43](https://github.com/salimsaidhemed/calendar-sync/issues/43) adds a [disposable localhost Keycloak stack](local-keycloak.md) to the #41 / PR #42 login increment. This does not complete parent #19 or enable calendar connection/configuration.

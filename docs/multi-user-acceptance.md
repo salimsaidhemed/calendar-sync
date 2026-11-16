@@ -15,7 +15,7 @@ python -m pip check
 git diff --check
 ```
 
-For a fresh environment first run python3 -m venv .venv, activate it, then python -m pip install -r requirements.lock and python -m pip install --no-deps -e . as in [testing](testing.md). Expect 35 installed pins/version match, 247 tests exactly catalogued and passing, no broken requirements or whitespace errors. Existing tests use fakes/temporary state and clean up automatically. The original #17 PR added no tests mirroring prose. #33 now adds 28 meaningful control/vault/migration tests; they establish backend foundation behavior. #41 adds 31 web/OIDC tests with an offline signed fixture; real Keycloak acceptance is separate under web-login.md. See control-store.md for its current acceptance exercise.
+For a fresh environment first run python3 -m venv .venv, activate it, then python -m pip install -r requirements.lock and python -m pip install --no-deps -e . as in [testing](testing.md). Expect 35 installed pins/version match, 253 tests exactly catalogued and passing, no broken requirements or whitespace errors. Existing tests use fakes/temporary state and clean up automatically. The original #17 PR added no tests mirroring prose. #33 now adds 28 meaningful control/vault/migration tests; they establish backend foundation behavior. #41 adds 31 web/OIDC tests with an offline signed fixture; real Keycloak acceptance is separate under web-login.md. See control-store.md for its current acceptance exercise.
 
 ## Design review cases
 

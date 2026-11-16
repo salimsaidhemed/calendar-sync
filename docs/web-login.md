@@ -19,7 +19,7 @@ python -m pip check
 python scripts/smoke_web.py
 ```
 
-Expected: **31 focused / 247 total tests**, individually documented as WEB-001–022 and OIDC-001–009 in [the catalogue](test-cases.md); **35 runtime pins**, matching package metadata and no broken dependencies. The smoke prints PASS WEB-UAT-01–06 and cleanup confirmation. It drives real ASGI routes, Authlib PKCE/token processing and signature validation using a private RSA-signed **offline test issuer**. No sockets/provider accounts/customer credentials or production state are needed. Temporary synthetic keys, sessions and control records are cleaned automatically. No fake provider mode is available in the application CLI/environment; test injection exists only in fixture code outside the installed app package.
+Expected: **31 focused / 253 total tests**, individually documented as WEB-001–022 and OIDC-001–009 in [the catalogue](test-cases.md); **35 runtime pins**, matching package metadata and no broken dependencies. The smoke prints PASS WEB-UAT-01–06 and cleanup confirmation. It drives real ASGI routes, Authlib PKCE/token processing and signature validation using a private RSA-signed **offline test issuer**. No sockets/provider accounts/customer credentials or production state are needed. Temporary synthetic keys, sessions and control records are cleaned automatically. No fake provider mode is available in the application CLI/environment; test injection exists only in fixture code outside the installed app package.
 
 | Case | Exercise / expected result |
 | --- | --- |
@@ -41,20 +41,23 @@ docker run --rm --network none --read-only --tmpfs /tmp:rw,mode=1777 \
   calendar-sync:web-login python /checks/smoke_web.py
 docker run --rm --network none --read-only --tmpfs /tmp:rw,mode=1777 \
   --mount "type=bind,src=$PWD/tests,dst=/app/tests,readonly" \
+  --mount "type=bind,src=$PWD/examples,dst=/app/examples,readonly" \
   --mount "type=bind,src=$PWD/scripts,dst=/app/scripts,readonly" \
   --mount "type=bind,src=$PWD/docs,dst=/app/docs,readonly" \
   calendar-sync:web-login python -m unittest discover -s tests -v
 ```
 
-Expect the same six smoke results and 247 tests under UID10001/Python3.12. Containers/temporary fixtures remove themselves; the local development image remains. No customer secrets/volumes should be mounted here.
+Expect the same six smoke results and 253 tests under UID10001/Python3.12. Containers/temporary fixtures remove themselves; the local development image remains. No customer secrets/volumes should be mounted here.
 
 ### WEB-IMAGE-01: restrictive checkout permissions
 
 The Dockerfile explicitly sets /app/pyproject.toml, /app/requirements.lock and its copied runtime-check script to 0644, and public /app/scripts traversal to 0755, before switching to UID10001. This prevents a host checkout with mode 0600 from making packaging checks unreadable. CI deliberately builds with those three public source files at 0600, then runs the image's metadata/version checks and existing acceptance. No key, token, client secret or data directory is made public.
 
-If an older image reports PermissionError for /app/requirements.lock or /app/pyproject.toml, pull the updated feature branch and rebuild it using the commands above. Then rerun the Docker full suite; expect 247 tests and OK. The third runtime_lock_check_failed assertion can be a consequence of the same unreadable files, not a separate version mismatch. Do not use recursive chmod on secrets/state or run the service as root to hide the packaging failure. This case validates image packaging, not real Keycloak login.
+If an older image reports PermissionError for /app/requirements.lock or /app/pyproject.toml, pull the updated feature branch and rebuild it using the commands above. Then rerun the Docker full suite; expect 253 tests and OK. The third runtime_lock_check_failed assertion can be a consequence of the same unreadable files, not a separate version mismatch. Do not use recursive chmod on secrets/state or run the service as root to hide the packaging failure. This case validates image packaging, not real Keycloak login.
 
 ## Live setup: use a disposable Keycloak realm first
+
+**Testing on your laptop without an existing test realm? Start with [Local Keycloak setup](local-keycloak.md).** It supplies Dockerized Keycloak, generated local users and verified localhost HTTPS automatically. Skip the public-settings prompts and the separately administered deployment section below for that option. Customer Keycloak remains independent.
 
 Live testing requires a real Keycloak administrator, two test users and reachable verified HTTPS addresses. It cannot be completed by running a reserved example hostname. A headless server is supported: users sign in from their laptop browsers, while code exchange/refresh/introspection run on the server. No laptop Python, Java helper or token file transfer is needed for this **application login**. Google Calendar permission/consent remains a later, independent connection feature.
 
@@ -68,8 +71,11 @@ Configure a **new confidential OpenID Connect client** in the disposable realm:
 4. Create client role **sync-user**. Assign it explicitly to disposable Alice and Bob users; keep an unassigned user for the denial test. Administrative/realm roles alone do not grant application access.
 5. Add/confirm a dedicated **User Client Role** mapper for this client. Client ID is your chosen ID; claim name is **resource_access.YOUR_CLIENT_ID.roles** (substitute the real ID), multivalued string, **Add to ID token on**. It must emit the sync-user client role. Do not substitute email, display name or broad realm-admin roles. If using the existing roles client scope, verify its client-role mapper really includes this claim in ID tokens rather than access tokens only.
 6. Copy the Keycloak client's secret from its Credentials tab through the protected setup prompt below. This is **not** a Google OAuth JSON file, user password or Nextcloud app password. Use disposable user passwords only on Keycloak's own login page.
+7. Add an **Audience** mapper to this client's dedicated scope: Included Client Audience = this exact client ID, Add to access token **on**, Add to ID token **off**. Retain the normal subject/session claims. Recent Keycloak versions require the introspecting client in the access token's audience; without this, login can be refused even after password acceptance. Keep audience checking enabled. See [Keycloak upgrading guidance](https://www.keycloak.org/docs/latest/upgrading/). The localhost fixture includes this mapper.
 
 ## Configure and start the isolated web deployment
+
+This section is for a separately administered HTTPS realm. For the self-contained localhost test server, use [local-keycloak.md](local-keycloak.md) instead; no `configure_web.py` prompts are required.
 
 From the feature checkout, generate the settings file by answering three prompts with the actual HTTPS origin, realm issuer and client ID. With the native environment already installed for the unit tests above:
 

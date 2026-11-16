@@ -4,7 +4,7 @@ Every discovered unit test has a stable case ID below. IDs refer to tests, not a
 
 ## Shared procedure
 
-Use the environment setup in [testing.md](testing.md). All 247 tests use temporary/fake state; none needs real credentials or provider requests. Run `python -m unittest discover -s tests -v` for the complete suite. To execute a row, use `python -m unittest discover -s tests -k '<full test identifier from the row>' -v`; expect exactly one test with `OK`. Prerequisites and cleanup are shared: Python 3.12+, installed project dependencies, local filesystem on Linux/macOS; temporary files are cleaned automatically. Expected exception assertions count as passing tests, not user-visible failures.
+Use the environment setup in [testing.md](testing.md). All 253 tests use temporary/fake state; none needs real credentials or provider requests. Run `python -m unittest discover -s tests -v` for the complete suite. To execute a row, use `python -m unittest discover -s tests -k '<full test identifier from the row>' -v`; expect exactly one test with `OK`. Prerequisites and cleanup are shared: Python 3.12+, installed project dependencies, local filesystem on Linux/macOS; temporary files are cleaned automatically. Expected exception assertions count as passing tests, not user-visible failures.
 
 ## CFG: test_scaffold.py
 
@@ -425,3 +425,16 @@ Manual Google cases are in [google-acceptance.md](google-acceptance.md); Nextclo
 ## Explicit coverage limits
 
 Fake OAuth tests do not establish that a real tenant permits consent, Google has verified an app, all account classes work, or production is ready. Fake pagination does not establish a point-in-time Google snapshot. Conditional writes/recovery are verified against fakes only. Windows/network filesystem behavior, real token expiry under each tenant, Nextcloud write interoperability, conflict resolution and production worker recovery have not been accepted here. Record unavailable live scenarios as Not run or Not applicable with a reason, never silently passed.
+
+## LOCAL: test_local_keycloak.py
+
+Source: [test_local_keycloak.py](../tests/test_local_keycloak.py). Run `python -m unittest discover -s tests -p 'test_local_keycloak.py' -v`; expect 6 passing tests. Temporary generated fixture only; no running containers or network required. Real-container acceptance is separately documented in [local-keycloak.md](local-keycloak.md).
+
+| Case ID | Executable test identifier | Setup / input | Expected result |
+| --- | --- | --- | --- |
+| LOCAL-001 | `test_local_keycloak.LocalKeycloakTests.test_realm_has_exact_confidential_pkce_audience_roles_and_random_credentials` | Generate fresh fixture; inspect client, roles, passwords, private files | Confidential code-only S256, exact callback/backchannel, ID-token role and access-token audience mappers; denied lacks role; distinct long random passwords; files 0600. |
+| LOCAL-002 | `test_local_keycloak.LocalKeycloakTests.test_tls_is_signed_for_localhost_and_ca_signing_key_is_not_persisted` | Generate CA and leaf | Leaf signature verifies, localhost SAN/serverAuth, CA constraints correct, public CA 0644; no persisted CA signing key. |
+| LOCAL-003 | `test_local_keycloak.LocalKeycloakTests.test_reinitialize_preserves_credentials_keys_and_seeded_state` | Initialize, seed and initialize again | No regeneration/overwrite; all immutable bytes retained. |
+| LOCAL-004 | `test_local_keycloak.LocalKeycloakTests.test_partial_and_tampered_fixtures_are_refused_without_overwrite` | Foreign partial directory; later modified session key | Both refused; foreign file and modified key retained for inspection. |
+| LOCAL-005 | `test_local_keycloak.LocalKeycloakTests.test_seed_is_idempotent_owner_scoped_paused_and_has_no_provider_credentials` | Seed twice | Exactly Alice/Bob owners, two connections each needing verification, two paused/dry-run/review pairs; synthetic file references only. |
+| LOCAL-006 | `test_local_keycloak.LocalKeycloakTests.test_test_driver_refuses_external_urls_and_parses_forms_without_scripts` | HTTP, external/lookalike host, userinfo and fragment URLs; escaped form fields | Unsafe URLs refused before credential submission; fixed HTTPS localhost allowed; form parsed as data. |

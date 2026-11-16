@@ -129,7 +129,7 @@ Rollback is a stopped-service, verified-snapshot procedure, not a schema downgra
 
 ## Threat-to-test requirements
 
-The following are **service-level implementation requirements**. #33 now covers repository/vault/migration portions through CTRL/CMIG cases in the current 247-test catalogue; #41 covers the first login/read-only HTTP/OIDC subset through WEB/OIDC cases; scheduler/provider/configuration scenarios remain future executable requirements. Each implementation issue must assign real test IDs before merge. Use synthetic Alice/Bob owners with different (issuer, subject), disjoint/shared calendar fixtures and fake providers. No real credentials needed for development.
+The following are **service-level implementation requirements**. #33 now covers repository/vault/migration portions through CTRL/CMIG cases in the current 253-test catalogue; #41 covers the first login/read-only HTTP/OIDC subset through WEB/OIDC cases; scheduler/provider/configuration scenarios remain future executable requirements. Each implementation issue must assign real test IDs before merge. Use synthetic Alice/Bob owners with different (issuer, subject), disjoint/shared calendar fixtures and fake providers. No real credentials needed for development.
 
 | Design ID | Required checks / expected denial or recovery | Implementation |
 | --- | --- | --- |

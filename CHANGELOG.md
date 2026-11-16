@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added #43's isolated localhost Keycloak/Caddy fixture, generated private test users/client/keys, explicit token-audience mapper, paused synthetic owner records, six real-container login/logout acceptance cases, unit cases and CI. Added complete start/test/browser CA trust/restart/cleanup guidance; customer settings and worker credentials are not consumed.
+
 - Normalized only public image metadata/check-script permissions before switching to UID10001, fixing Docker acceptance failures from restrictive checkout permissions. CI now builds with these public inputs at mode 0600 to prevent regression; credential/key permissions remain private.
 - Added the first #19 increment under #41: standalone FastAPI/Keycloak login with Authlib PKCE and signed OIDC validation, encrypted server-side sessions, CSRF/Origin/Host defenses, bounded refresh/introspection, local/backchannel logout and owner-scoped read-only overview/API. Calendar connection, configuration and two-way capabilities remain disabled.
 - Added isolated web Compose/bootstrap, public-settings prompts, credential-free signed login acceptance and real HTTPS Keycloak setup/UAT instructions. Locked 35 development runtime versions; the frozen v0.1.0 source retains its separate lock. Excluded local stages from Git/Docker context.

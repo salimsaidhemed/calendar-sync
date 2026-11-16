@@ -50,6 +50,14 @@ jobs:
         run: |
           cp .env.example .env
           docker compose config --quiet
+      - name: Real localhost Keycloak integration
+        run: |
+          export LOCAL_WEB_UAT_PROJECT="calendar-sync-keycloak-local-ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          export LOCAL_WEB_UAT_IMAGE=calendar-sync:test
+          export LOCAL_WEB_UAT_SKIP_BUILD=true
+          trap 'bash scripts/local_keycloak.sh reset --delete-local-test-volumes' EXIT
+          bash scripts/local_keycloak.sh up
+          bash scripts/local_keycloak.sh test
       - name: Validate isolated UAT template
         run: docker compose --env-file examples/uat/.env.example -f examples/uat/compose.yaml --profile setup config --quiet
       - name: Validate isolated web setup and runtime template
