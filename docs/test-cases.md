@@ -400,7 +400,7 @@ Run `python -m unittest discover -s tests -p 'test_web.py' -v`; expect 22 passes
 | WEB-019 | `test_web.WebTests.test_sessions_survive_restart_but_second_web_process_cannot_open_store` | Reopen persistent web sessions and compete with another app process | Second process refused; after clean close restart preserves session but revalidates issuer. |
 | WEB-020 | `test_web.WebTests.test_modified_cookie_or_ciphertext_cannot_produce_an_authenticated_owner` | Changed opaque cookie then modified ciphertext | No owner can be produced; cookie denied before RPC; ciphertext failure sanitized, no token exposure. |
 | WEB-021 | `test_web.WebTests.test_web_setup_creates_private_files_without_overwrite_or_network` | Fresh key/client-secret bootstrap then repeated initialization | Files private and owned; no overwrite and no network. |
-| WEB-022 | `test_web.WebTests.test_unknown_session_schema_or_wrong_recovery_key_is_refused_without_reset` | Future session schema then wrong key against existing store | Startup fails closed without schema downgrade or automatic session reset. |
+| WEB-022 | `test_web.WebTests.test_unknown_session_schema_or_wrong_recovery_key_is_refused_without_reset` | Future session schema, wrong key, and an empty SQLite file tagged for another application | Startup fails closed without schema downgrade, application-ID overwrite or automatic session reset. |
 
 ## OIDC: test_web_oidc.py
 
