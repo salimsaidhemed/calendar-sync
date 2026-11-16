@@ -339,3 +339,11 @@ class WebTests(unittest.IsolatedAsyncioTestCase):
         create_key(wrong)
         with self.assertRaises(WebError):
             create_app(replace(self.settings,session_key_file=str(wrong)),provider=self.fake.client(),clock=lambda:self.now)
+        unrelated = self.root/'unrelated.sqlite3'
+        with closing(sqlite3.connect(unrelated)) as connection, connection:
+            connection.execute('PRAGMA application_id=7777')
+        unrelated.chmod(0o600)
+        before = unrelated.read_bytes()
+        with self.assertRaises(WebError):
+            create_app(replace(self.settings,session_file=str(unrelated)),provider=self.fake.client(),clock=lambda:self.now)
+        self.assertEqual(unrelated.read_bytes(),before)

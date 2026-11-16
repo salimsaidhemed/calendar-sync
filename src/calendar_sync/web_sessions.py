@@ -31,7 +31,8 @@ class Sessions:
             os.close(private_file(self.path,create=True,writable=True))
             self.connection = sqlite3.connect(self.path,isolation_level=None,check_same_thread=False)
             self.connection.execute('PRAGMA synchronous=FULL')
-            if self.connection.execute('PRAGMA user_version').fetchone()[0]==0 and not self.connection.execute(
+            if self.connection.execute('PRAGMA user_version').fetchone()[0]==0 and self.connection.execute(
+                    'PRAGMA application_id').fetchone()[0]==0 and not self.connection.execute(
                     "SELECT 1 FROM sqlite_master WHERE type='table'").fetchone():
                 self.connection.executescript('''BEGIN IMMEDIATE;
                     CREATE TABLE records(id TEXT PRIMARY KEY, expires REAL NOT NULL, envelope BLOB NOT NULL);
