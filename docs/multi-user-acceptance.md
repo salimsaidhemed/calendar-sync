@@ -15,7 +15,7 @@ python -m pip check
 git diff --check
 ```
 
-For a fresh environment first run python3 -m venv .venv, activate it, then python -m pip install -r requirements.lock and python -m pip install --no-deps -e . as in [testing](testing.md). Expect 19 installed pins/version match, 188 tests exactly catalogued and passing, no broken requirements or whitespace errors. Existing tests use fakes/temporary state and clean up automatically. No new low-value tests that mirror prose are added for this documentation-only PR; existing tests establish regression safety, not implemented GUI authorization.
+For a fresh environment first run python3 -m venv .venv, activate it, then python -m pip install -r requirements.lock and python -m pip install --no-deps -e . as in [testing](testing.md). Expect 19 installed pins/version match, 216 tests exactly catalogued and passing, no broken requirements or whitespace errors. Existing tests use fakes/temporary state and clean up automatically. The original #17 PR added no tests mirroring prose. #33 now adds 28 meaningful control/vault/migration tests; they establish backend foundation behavior, not implemented GUI/OIDC authorization. See control-store.md for its current acceptance exercise.
 
 ## Design review cases
 

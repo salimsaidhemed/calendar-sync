@@ -7,7 +7,7 @@ COPY src ./src
 RUN python -m pip install --requirement requirements.lock && python -m pip install --no-deps . && python -m pip check
 COPY scripts/check_runtime_lock.py ./scripts/check_runtime_lock.py
 ARG VCS_REF=unknown
-LABEL org.opencontainers.image.version="0.1.0" \
+LABEL org.opencontainers.image.version="0.2.0.dev0" \
       org.opencontainers.image.revision="${VCS_REF}" \
       org.opencontainers.image.source="https://github.com/salimsaidhemed/calendar-sync"
 USER 10001:10001

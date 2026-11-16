@@ -1,6 +1,6 @@
 # Multi-user web application and worker design
 
-Issue #17; proposed implementation contract, reviewed against provider documentation on 2026-11-16. This PR adds design only. No web route, SSO, schema migration, credential broker, calendar discovery or reverse write exists in this revision. The merged v0.1.0 worker remains one-way, one explicit pair per process; its artifact is unchanged. Source merge is not proof that a release tag was published.
+Issue #17; proposed implementation contract, reviewed against provider documentation on 2026-11-16. The design PR introduced no runtime services. Issue #33 now provides the [local control/vault/migration foundation](control-store.md); web routes, SSO, worker credential broker, provider discovery and reverse writes remain unimplemented. The v0.1.0 worker remains one-way, one explicit pair per process; its frozen artifact is unchanged. Source merge is not proof that a release tag was published.
 
 ## Product flow and delivery boundary
 
@@ -129,7 +129,7 @@ Rollback is a stopped-service, verified-snapshot procedure, not a schema downgra
 
 ## Threat-to-test requirements
 
-The following are **required future executable scenarios**, not new passing tests or entries in the current 188-test catalogue. Each implementation issue must assign real test IDs before merge. Use synthetic Alice/Bob owners with different (issuer, subject), disjoint/shared calendar fixtures and fake providers. No real credentials needed for development.
+The following are **service-level implementation requirements**. #33 now covers repository/vault/migration portions through CTRL/CMIG cases in the current 216-test catalogue; HTTP/OIDC/scheduler/provider scenarios remain future executable requirements. Each implementation issue must assign real test IDs before merge. Use synthetic Alice/Bob owners with different (issuer, subject), disjoint/shared calendar fixtures and fake providers. No real credentials needed for development.
 
 | Design ID | Required checks / expected denial or recovery | Implementation |
 | --- | --- | --- |

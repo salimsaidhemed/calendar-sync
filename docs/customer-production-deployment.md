@@ -1,5 +1,7 @@
 # Customer production deployment — Google Workspace
 
+Current development is 0.2.0.dev0 and includes an unintegrated multi-user foundation. For this one-way customer deployment, use the exact approved v0.1.0 release source/image (or its approved release merge SHA), not a moving development main tip. Merging a foundation PR does not approve a production upgrade or enable the future GUI.
+
 This guide is for a customer-controlled Linux server running one Google Workspace master calendar into one Nextcloud calendar, normally at https://nextcloud.tcadc.com. It requires no access by the developer to the customer server. Follow sections in order; all commands in a section must succeed before continuing. Replace every REPLACE value privately.
 
 **Approval and scope:** deploy an owner-approved main commit, not an unreviewed feature branch. PR #30 supplies the worker. PR #31 adds this guide and the snapshot helper; review/merge it before using that helper on customer state. The full sequence below assumes an approved commit containing both. Release/safety sign-off remains #14; this document does not declare v0.1.0 released or establish production acceptance. A customer dry-run pilot can validate connectivity before live rollout, but it never substitutes for the live acceptance checklist.

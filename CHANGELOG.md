@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Started 0.2.0.dev0 with a separate owner-scoped control store, AES-GCM credential vault, revision-checked credential updates, global endpoint reservations and retained security audit (#33).
+- Added explicit offline legacy import/quarantine without engine changes, authenticated two-store snapshot/isolated restore and atomic key rotation with separate key recovery. Added credential-free acceptance exercises and individual tests; no GUI, online authentication, scheduler integration or two-way writes are enabled.
+- Declared the already pinned cryptography runtime dependency directly and updated development image/package metadata; v0.1.0 release instructions remain historical to its approved source.
 - Designed the multi-user web/worker boundary, owner-scoped API and server-side provider connections, multiple calendar pairs, explicit migration and staged two-way delivery (#17). Added design review cases and implementation gates; no GUI/API runtime or provider permissions changed.
 
 Future GUI/API changes are tracked separately under M4. Publication of the worker baseline follows the owner-approved release procedure in docs/release.md.
