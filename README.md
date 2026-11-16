@@ -6,6 +6,8 @@ Calendar Sync v0.1.0 worker baseline: a Dockerized Python worker connecting one 
 
 The [SQLite state library](docs/state.md) provides configuration-scoped mappings, run history, audit records, recovery intents and migrations. The worker owns its database lock for its lifetime; bare offline checks do not create a database.
 
+Next development stage: [multi-user web design](docs/multi-user-design.md), [design review and future acceptance](docs/multi-user-acceptance.md), and the [delivery roadmap](docs/roadmap.md). These are proposed contracts; the current release does not yet provide login, user-selected calendar pairs or two-way writes.
+
 The [Google adapter](docs/google.md) and [Nextcloud adapter](docs/nextcloud.md) supply complete reads and [event normalization](docs/nextcloud.md#event-normalization-and-serialization). The [planner](docs/planner.md) and [executor](docs/execution.md) provide conditional writes and durable crash recovery. The [worker setup and acceptance guide](docs/worker.md) documents polling, health, signals, mounted credentials and deployment. Development/tests need no credentials; actual worker cycles need authorized provider files and explicit calendars.
 
 ## Local development
