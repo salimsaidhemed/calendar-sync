@@ -34,9 +34,21 @@ jobs:
         run: docker run --rm --network none --read-only --tmpfs /tmp:rw,mode=1777 --mount "type=bind,src=$PWD/scripts,dst=/checks,readonly" calendar-sync:test python /checks/smoke_control.py
       - name: Offline operator CLI acceptance
         run: docker run --rm --network none --read-only --tmpfs /tmp:rw,mode=1777 --mount "type=bind,src=$PWD/scripts,dst=/checks,readonly" calendar-sync:test python /checks/smoke_control_cli.py
+      - name: Offline signed web login acceptance
+        run: docker run --rm --network none --read-only --tmpfs /tmp:rw,mode=1777 --mount "type=bind,src=$PWD/scripts,dst=/checks,readonly" calendar-sync:test python /checks/smoke_web.py
+      - name: Disposable web setup and unprivileged startup
+        run: |
+          fixture="calendar-web-ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          trap 'docker volume rm "$fixture-data" "$fixture-secrets"' EXIT
+          docker run --rm --network none --read-only --user 0:0 --cap-drop ALL --cap-add CHOWN --cap-add DAC_OVERRIDE --cap-add FOWNER --env-file .env.web.example --mount "type=volume,src=$fixture-data,dst=/data" --mount "type=volume,src=$fixture-secrets,dst=/run/web-secrets" --mount "type=bind,src=$PWD/scripts,dst=/checks,readonly" calendar-sync:test python /checks/smoke_web_deployment.py --initialize
+          docker run --rm --network none --read-only --cap-drop ALL --env-file .env.web.example --mount "type=volume,src=$fixture-data,dst=/data" --mount "type=volume,src=$fixture-secrets,dst=/run/web-secrets,readonly" --mount "type=bind,src=$PWD/scripts,dst=/checks,readonly" calendar-sync:test python /checks/smoke_web_deployment.py
       - name: Validate Compose configuration
         run: |
           cp .env.example .env
           docker compose config --quiet
       - name: Validate isolated UAT template
         run: docker compose --env-file examples/uat/.env.example -f examples/uat/compose.yaml --profile setup config --quiet
+      - name: Validate isolated web setup and runtime template
+        run: |
+          cp .env.web.example .env.web
+          docker compose --env-file .env.web -f compose.web.yaml --profile setup config --quiet

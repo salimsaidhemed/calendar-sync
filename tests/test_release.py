@@ -14,7 +14,7 @@ from scripts import check_runtime_lock
 
 class ReleaseTests(unittest.TestCase):
     def test_runtime_lock_matches_installed_release_and_all_direct_dependencies(self):
-        self.assertEqual(check_runtime_lock.check(), 19)
+        self.assertEqual(check_runtime_lock.check(), 35)
 
     def test_unpinned_duplicate_and_incomplete_locks_are_rejected(self):
         with tempfile.TemporaryDirectory() as directory:

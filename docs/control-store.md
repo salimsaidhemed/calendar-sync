@@ -1,6 +1,6 @@
 # Owner, vault and migration foundation — issue #33
 
-Development version **0.2.0.dev0**, not the frozen v0.1.0 customer image. This implements a local backend library and offline operator tool, not a running GUI/API, Keycloak login, scheduler or two-way sync. The existing worker still uses its original settings/engine database; it does not consume these new records. Do not point production at a new control database expecting multi-user synchronization. Use disposable state for acceptance below.
+Development version **0.2.0.dev0**, not the frozen v0.1.0 customer image. This page covers the local backend library and offline operator tools from #33. The separate [web login shell](web-login.md) now authenticates/read-displays owned records; scheduler integration, provider connection, configuration UI and two-way sync remain unavailable. The existing worker still uses its original settings/engine database; it does not consume these new records. Do not point production at a new control database expecting multi-user synchronization. Use disposable state for acceptance below.
 
 ## Implemented boundary
 
@@ -33,7 +33,7 @@ python -m pip check
 python scripts/smoke_control.py
 ```
 
-Expected: **28 focused tests**, **216 total tests** individually catalogued, 19 runtime pins and metadata match, no broken dependencies. Focused executable cases and subcases are CTRL-001–016 and CMIG-001–012 in [the catalogue](test-cases.md). The smoke script prints six PASS lines plus the final cleanup/no-network confirmation. It creates only synthetic credentials and local fixtures in an automatically removed temporary directory; it never reads customer secret files or contacts providers. Assertion/fixed-code failure is a failed check; stop and retain redacted output, do not edit production state to make it pass.
+Expected: **28 focused tests**, **247 total tests** individually catalogued, 35 runtime pins and metadata match, no broken dependencies. Focused executable cases and subcases are CTRL-001–016 and CMIG-001–012 in [the catalogue](test-cases.md). The smoke script prints six PASS lines plus the final cleanup/no-network confirmation. It creates only synthetic credentials and local fixtures in an automatically removed temporary directory; it never reads customer secret files or contacts providers. Assertion/fixed-code failure is a failed check; stop and retain redacted output, do not edit production state to make it pass.
 
 | Case | Action inside the reproducible script | Expected observable result |
 | --- | --- | --- |
@@ -60,7 +60,7 @@ docker run --rm --network none --read-only --tmpfs /tmp:rw,mode=1777 \
   calendar-sync:control-foundation python -m unittest discover -s tests -v
 ```
 
-Expected same six smoke results and 216 passing tests under UID10001/Python3.12. Containers remove themselves and temporary fixtures; the local development image remains until deliberately removed. Do not tag this as v0.1.0 or mount customer state/secrets for this exercise.
+Expected same six smoke results and 247 passing tests under UID10001/Python3.12. Containers remove themselves and temporary fixtures; the local development image remains until deliberately removed. Do not tag this as v0.1.0 or mount customer state/secrets for this exercise.
 
 ## Offline operator CLI — CTRL-UAT-07
 
@@ -70,7 +70,7 @@ Expected same six smoke results and 216 passing tests under UID10001/Python3.12.
 python scripts/smoke_control_cli.py
 ```
 
-Expected PASS CTRL-UAT-07 and PASS CTRL-UAT-08 followed by cleanup confirmation. It invokes the actual operator CLI in subprocesses, exercises preview/apply/retry, snapshot/restore/rotation and negative paths, and verifies unchanged synthetic engine state. No Keycloak server, user credentials, customer files or pre-existing stage is required. It cleans its own temporary directory and leaves .local/control-stage untouched. The ordinary 216-test suite is unchanged; this is an additional reproducible acceptance exercise, also run in CI.
+Expected PASS CTRL-UAT-07 and PASS CTRL-UAT-08 followed by cleanup confirmation. It invokes the actual operator CLI in subprocesses, exercises preview/apply/retry, snapshot/restore/rotation and negative paths, and verifies unchanged synthetic engine state. No Keycloak server, user credentials, customer files or pre-existing stage is required. It cleans its own temporary directory and leaves .local/control-stage untouched. The ordinary 247-test suite is unchanged; this is an additional reproducible acceptance exercise, also run in CI.
 
 The deployment-specific templates **below are not directly executable test fixtures**. Every REPLACE value requires an actual reviewed path/identity before use. A register-owner result means only that a row was stored; it does not prove Keycloak validation. A literal REPLACE issuer/subject can therefore be stored as a test row, but must never be used to assign real customer configurations. For synthetic acceptance, use the script above rather than adapting customer paths.
 

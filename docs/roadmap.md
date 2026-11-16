@@ -36,6 +36,7 @@ Epic [#4](https://github.com/salimsaidhemed/calendar-sync/issues/4).
 
 - [#17](https://github.com/salimsaidhemed/calendar-sync/issues/17) Design API boundaries and per-user authorization
 - [#19](https://github.com/salimsaidhemed/calendar-sync/issues/19) Implement Keycloak login and configuration UI
+- [#41](https://github.com/salimsaidhemed/calendar-sync/issues/41) First #19 increment: Keycloak/session and owner-scoped read-only web shell
 - [#18](https://github.com/salimsaidhemed/calendar-sync/issues/18) Expose audit history and sync status UI
 - [#33](https://github.com/salimsaidhemed/calendar-sync/issues/33) Owner-scoped control store, encrypted vault and explicit legacy migration
 - [#34](https://github.com/salimsaidhemed/calendar-sync/issues/34) Single-engine scheduling and durable jobs/reports

@@ -1,22 +1,37 @@
-# Runtime versions validated for the v0.1.0 worker on Python 3.12 Linux.
-# Explicit version pins, not wheel hashes or a pin of OS/build dependencies.
-# Record the final image ID/digest; build from an approved source commit.
+# Runtime versions validated for 0.2.0.dev0 web and worker development.
+# Explicit pins, not hashes or OS/build pins. Frozen v0.1.0 uses its own source lock.
+annotated-doc==0.0.6
+annotated-types==0.8.0
+anyio==4.16.0
+authlib==1.9.8
 certifi==2026.10.23
 cffi==2.1.1
 charset-normalizer==3.5.2
+click==8.5.1
 cryptography==50.0.2
 defusedxml==0.7.1
+fastapi==0.163.1
 google-auth==2.62.1
 google-auth-oauthlib==1.5.0
+h11==0.16.0
+httpcore==1.0.9
+httpx==0.28.1
 icalendar==7.3.0
 idna==3.20
+joserfc==1.8.0
 oauthlib==4.0.1
+opentelemetry-api==1.45.2
 pyasn1==0.6.5
 pyasn1-modules==0.4.2
 pycparser==3.12
+pydantic==2.14.3
+pydantic-core==2.50.4
 python-dateutil==4.0.0
 requests==2.34.2
 requests-oauthlib==2.0.0
+starlette==1.10.0
 typing-extensions==4.16.0
+typing-inspection==0.4.5
 tzdata==2026.6
 urllib3==2.8.0
+uvicorn==0.54.0

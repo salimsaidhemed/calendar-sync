@@ -37,7 +37,7 @@ python scripts/check_test_catalogue.py
 python -m unittest discover -s tests -v
 ```
 
-Expected: 30 executor, 6 journal, 31 CalDAV and 216 total tests pass; 216 tests documented exactly once. EXEC/JOURNAL/DAV rows in [the catalogue](test-cases.md) document every scenario and subcase. Temporary databases/fake calendars are automatically cleaned up. No live calendar is modified by these tests.
+Expected: 30 executor, 6 journal, 31 CalDAV and 247 total tests pass; 247 tests documented exactly once. EXEC/JOURNAL/DAV rows in [the catalogue](test-cases.md) document every scenario and subcase. Temporary databases/fake calendars are automatically cleaned up. No live calendar is modified by these tests.
 
 ## Acceptance cases
 
