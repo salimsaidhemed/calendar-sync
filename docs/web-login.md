@@ -48,6 +48,12 @@ docker run --rm --network none --read-only --tmpfs /tmp:rw,mode=1777 \
 
 Expect the same six smoke results and 247 tests under UID10001/Python3.12. Containers/temporary fixtures remove themselves; the local development image remains. No customer secrets/volumes should be mounted here.
 
+### WEB-IMAGE-01: restrictive checkout permissions
+
+The Dockerfile explicitly sets /app/pyproject.toml, /app/requirements.lock and its copied runtime-check script to 0644, and public /app/scripts traversal to 0755, before switching to UID10001. This prevents a host checkout with mode 0600 from making packaging checks unreadable. CI deliberately builds with those three public source files at 0600, then runs the image's metadata/version checks and existing acceptance. No key, token, client secret or data directory is made public.
+
+If an older image reports PermissionError for /app/requirements.lock or /app/pyproject.toml, pull the updated feature branch and rebuild it using the commands above. Then rerun the Docker full suite; expect 247 tests and OK. The third runtime_lock_check_failed assertion can be a consequence of the same unreadable files, not a separate version mismatch. Do not use recursive chmod on secrets/state or run the service as root to hide the packaging failure. This case validates image packaging, not real Keycloak login.
+
 ## Live setup: use a disposable Keycloak realm first
 
 Live testing requires a real Keycloak administrator, two test users and reachable verified HTTPS addresses. It cannot be completed by running a reserved example hostname. A headless server is supported: users sign in from their laptop browsers, while code exchange/refresh/introspection run on the server. No laptop Python, Java helper or token file transfer is needed for this **application login**. Google Calendar permission/consent remains a later, independent connection feature.

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Normalized only public image metadata/check-script permissions before switching to UID10001, fixing Docker acceptance failures from restrictive checkout permissions. CI now builds with these public inputs at mode 0600 to prevent regression; credential/key permissions remain private.
 - Added the first #19 increment under #41: standalone FastAPI/Keycloak login with Authlib PKCE and signed OIDC validation, encrypted server-side sessions, CSRF/Origin/Host defenses, bounded refresh/introspection, local/backchannel logout and owner-scoped read-only overview/API. Calendar connection, configuration and two-way capabilities remain disabled.
 - Added isolated web Compose/bootstrap, public-settings prompts, credential-free signed login acceptance and real HTTPS Keycloak setup/UAT instructions. Locked 35 development runtime versions; the frozen v0.1.0 source retains its separate lock. Excluded local stages from Git/Docker context.
 - Added a complete placeholder-free CTRL-UAT-07/08 CLI exercise and CI check after operator testing feedback; clarified the difference between synthetic acceptance and deployment templates, and that owner registration alone does not validate Keycloak identity.

@@ -20,7 +20,11 @@ jobs:
       - run: python -m unittest discover -s tests -v
       - run: calendar-sync
       - run: calendar-sync --version
-      - run: docker build --build-arg VCS_REF=${{ github.sha }} -t calendar-sync:test .
+      - name: Build image from restrictive public-file checkout
+        run: |
+          chmod 0600 pyproject.toml requirements.lock scripts/check_runtime_lock.py
+          trap 'chmod 0644 pyproject.toml requirements.lock scripts/check_runtime_lock.py' EXIT
+          docker build --build-arg VCS_REF=${{ github.sha }} -t calendar-sync:test .
       - run: docker run --rm --network none --read-only calendar-sync:test calendar-sync --version
       - run: docker run --rm --network none --read-only calendar-sync:test python scripts/check_runtime_lock.py
       - name: Check release image labels
