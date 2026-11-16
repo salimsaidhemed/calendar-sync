@@ -32,6 +32,8 @@ jobs:
         run: docker run --rm --network none --read-only --tmpfs /tmp:rw,mode=1777 --mount "type=bind,src=$PWD/scripts,dst=/checks,readonly" calendar-sync:test python /checks/smoke_worker.py
       - name: Offline control foundation acceptance
         run: docker run --rm --network none --read-only --tmpfs /tmp:rw,mode=1777 --mount "type=bind,src=$PWD/scripts,dst=/checks,readonly" calendar-sync:test python /checks/smoke_control.py
+      - name: Offline operator CLI acceptance
+        run: docker run --rm --network none --read-only --tmpfs /tmp:rw,mode=1777 --mount "type=bind,src=$PWD/scripts,dst=/checks,readonly" calendar-sync:test python /checks/smoke_control_cli.py
       - name: Validate Compose configuration
         run: |
           cp .env.example .env

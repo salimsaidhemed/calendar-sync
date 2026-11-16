@@ -64,6 +64,16 @@ Expected same six smoke results and 216 passing tests under UID10001/Python3.12.
 
 ## Offline operator CLI — CTRL-UAT-07
 
+**For acceptance testing, run this complete example first. It creates every input automatically and contains no placeholders:**
+
+```sh
+python scripts/smoke_control_cli.py
+```
+
+Expected PASS CTRL-UAT-07 and PASS CTRL-UAT-08 followed by cleanup confirmation. It invokes the actual operator CLI in subprocesses, exercises preview/apply/retry, snapshot/restore/rotation and negative paths, and verifies unchanged synthetic engine state. No Keycloak server, user credentials, customer files or pre-existing stage is required. It cleans its own temporary directory and leaves .local/control-stage untouched. The ordinary 216-test suite is unchanged; this is an additional reproducible acceptance exercise, also run in CI.
+
+The deployment-specific templates **below are not directly executable test fixtures**. Every REPLACE value requires an actual reviewed path/identity before use. A register-owner result means only that a row was stored; it does not prove Keycloak validation. A literal REPLACE issuer/subject can therefore be stored as a test row, but must never be used to assign real customer configurations. For synthetic acceptance, use the script above rather than adapting customer paths.
+
 First practice this with copied/disposable state. All commands below are for a future staged migration, not instructions to cut the running customer over to a GUI that does not exist yet. Use the same trusted OS account that owns the engine/credentials; container deployments normally use UID10001. Stop **every** engine/control client, verify existing engine backup with [operations](operations.md), and work on an isolated engine copy first. The CLI refuses hot journals/sidecars, wrong schema and active locks. It does not bypass or migrate the engine.
 
 Create a separate protected control directory and key directory. Replace example paths with reviewed deployment-specific paths; never replace a working key by rerunning init-key. The first command creates the key privately; subsequent commands require it:
@@ -110,6 +120,8 @@ Engine configuration IDs, owner='operator' markers, calendar IDs, UIDs, mappings
 Cleanup for this manual stage: retain key/state through the reviewed recovery policy if real data was used; do not delete production grants/mappings or resume from an old engine snapshot. For purely synthetic isolated copies, remove only your recorded stage after verifying it contains no production material. The six-case smoke script above performs its own disposable cleanup.
 
 ## Backup, restore and rotation — CTRL-UAT-08
+
+For a complete disposable CLI exercise of this case, run python scripts/smoke_control_cli.py as above. The following are operator templates for reviewed real paths, not additional commands required after the synthetic PASS output.
 
 Stop all clients and use a new backup directory every time. Snapshot requires the maintenance control lock and quiesced engine lock; it refuses engine/control divergence. Replace every path below with the reviewed staged paths:
 

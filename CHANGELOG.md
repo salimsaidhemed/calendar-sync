@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Added a complete placeholder-free CTRL-UAT-07/08 CLI exercise and CI check after operator testing feedback; clarified the difference between synthetic acceptance and deployment templates, and that owner registration alone does not validate Keycloak identity.
 - Started 0.2.0.dev0 with a separate owner-scoped control store, AES-GCM credential vault, revision-checked credential updates, global endpoint reservations and retained security audit (#33).
 - Added explicit offline legacy import/quarantine without engine changes, authenticated two-store snapshot/isolated restore and atomic key rotation with separate key recovery. Added credential-free acceptance exercises and individual tests; no GUI, online authentication, scheduler integration or two-way writes are enabled.
 - Declared the already pinned cryptography runtime dependency directly and updated development image/package metadata; v0.1.0 release instructions remain historical to its approved source.
