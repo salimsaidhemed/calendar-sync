@@ -30,13 +30,20 @@ Epic [#3](https://github.com/salimsaidhemed/calendar-sync/issues/3).
 - [#16](https://github.com/salimsaidhemed/calendar-sync/issues/16) Write OAuth, Nextcloud and recovery setup guide
 - [#14](https://github.com/salimsaidhemed/calendar-sync/issues/14) Run safety acceptance suite and prepare v0.1.0 release PR
 
-## M4 — Multi-user UI and SSO (future)
+## M4 — Multi-user UI and SSO (design in progress)
 
 Epic [#4](https://github.com/salimsaidhemed/calendar-sync/issues/4).
 
 - [#17](https://github.com/salimsaidhemed/calendar-sync/issues/17) Design API boundaries and per-user authorization
 - [#19](https://github.com/salimsaidhemed/calendar-sync/issues/19) Implement Keycloak login and configuration UI
 - [#18](https://github.com/salimsaidhemed/calendar-sync/issues/18) Expose audit history and sync status UI
+- [#33](https://github.com/salimsaidhemed/calendar-sync/issues/33) Owner-scoped control store, encrypted vault and explicit legacy migration
+- [#34](https://github.com/salimsaidhemed/calendar-sync/issues/34) Single-engine scheduling and durable jobs/reports
+- [#35](https://github.com/salimsaidhemed/calendar-sync/issues/35) Server-side Google OAuth and calendar discovery
+- [#36](https://github.com/salimsaidhemed/calendar-sync/issues/36) Nextcloud connection and CalDAV discovery
+- [#37](https://github.com/salimsaidhemed/calendar-sync/issues/37) Multiple owned calendar pairs, preview and activation
+
+Delivery order: #17 design, #33 persistence/ownership, #19 login/session shell; then #34 and #35/#36, #37 pair management and #18 history/status. The UI shell can ship before provider connections; pairing depends on discovery and scheduling. M4 keeps one-way Google-to-Nextcloud semantics. See [the proposed contract](multi-user-design.md) and [review cases](multi-user-acceptance.md). These features are not part of v0.1.0 and are not yet implemented.
 
 ## M5 — Advanced sync (future)
 
@@ -44,6 +51,9 @@ Epic [#5](https://github.com/salimsaidhemed/calendar-sync/issues/5).
 
 - [#21](https://github.com/salimsaidhemed/calendar-sync/issues/21) Specify recurrence and exception interoperability
 - [#20](https://github.com/salimsaidhemed/calendar-sync/issues/20) Specify bidirectional conflicts and deletion safeguards
+- [#38](https://github.com/salimsaidhemed/calendar-sync/issues/38) Implement opt-in two-way ordinary-event reconciliation and recovery after #20 and M4
+
+Two-way operation extends the Python engine; no rewrite or Java token application is planned. Deletion propagation and recurrence require separately approved policy/implementation/acceptance; #38 does not enable them.
 
 ## Definition of done
 

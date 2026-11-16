@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Designed the multi-user web/worker boundary, owner-scoped API and server-side provider connections, multiple calendar pairs, explicit migration and staged two-way delivery (#17). Added design review cases and implementation gates; no GUI/API runtime or provider permissions changed.
+
 Future GUI/API changes are tracked separately under M4. Publication of the worker baseline follows the owner-approved release procedure in docs/release.md.
 
 ## 0.1.0

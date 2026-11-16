@@ -1,5 +1,7 @@
 # v0.1.0 implementation plan
 
+This is the existing one-way engine baseline. Proposed multi-user web/scheduler changes and API contracts live in [multi-user-design.md](multi-user-design.md); they do not alter the current runtime until separately implemented and accepted.
+
 This document specifies the target engine architecture. SQLite state, provider libraries, planner and opt-in conditional execution/recovery are implemented; the continuous worker is implemented with polling, health and graceful shutdown; full operational/release acceptance remains pending. See [execution.md](execution.md) and the catalogue for verified behavior.
 
 ## Direction and ownership
