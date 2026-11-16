@@ -10,6 +10,8 @@ htmlcov/
 .env
 .env.*
 !.env.example
+!.env.web.example
+.local/
 secrets/
 data/
 *.sqlite*

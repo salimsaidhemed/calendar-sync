@@ -6,6 +6,7 @@ COPY pyproject.toml requirements.lock ./
 COPY src ./src
 RUN python -m pip install --requirement requirements.lock && python -m pip install --no-deps . && python -m pip check
 COPY scripts/check_runtime_lock.py ./scripts/check_runtime_lock.py
+RUN chmod 0644 pyproject.toml requirements.lock scripts/check_runtime_lock.py && chmod 0755 /app /app/scripts
 ARG VCS_REF=unknown
 LABEL org.opencontainers.image.version="0.2.0.dev0" \
       org.opencontainers.image.revision="${VCS_REF}" \

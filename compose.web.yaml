@@ -1,0 +1,37 @@
+services:
+  web:
+    build: .
+    env_file: .env.web
+    command: ["python", "-m", "calendar_sync.web"]
+    restart: unless-stopped
+    init: true
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    tmpfs: ["/tmp:size=16m,mode=1777"]
+    ports: ["127.0.0.1:8000:8000"]
+    volumes:
+      - web-data:/data
+      - web-secrets:/run/web-secrets:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os,urllib.request,urllib.parse; origin=urllib.parse.urlsplit(os.environ['WEB_ORIGIN']).netloc; urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:8000/healthz',headers={'Host':origin}),timeout=3).read()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+  web-init:
+    profiles: ["setup"]
+    build: .
+    env_file: .env.web
+    command: ["python", "-m", "calendar_sync.web_setup"]
+    user: "0:0"
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    cap_add: ["CHOWN", "DAC_OVERRIDE", "FOWNER"]
+    tmpfs: ["/tmp:size=16m,mode=1777"]
+    volumes:
+      - web-data:/data
+      - web-secrets:/run/web-secrets
+volumes:
+  web-data:
+  web-secrets:

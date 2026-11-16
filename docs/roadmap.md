@@ -36,6 +36,7 @@ Epic [#4](https://github.com/salimsaidhemed/calendar-sync/issues/4).
 
 - [#17](https://github.com/salimsaidhemed/calendar-sync/issues/17) Design API boundaries and per-user authorization
 - [#19](https://github.com/salimsaidhemed/calendar-sync/issues/19) Implement Keycloak login and configuration UI
+- [#41](https://github.com/salimsaidhemed/calendar-sync/issues/41) First #19 increment: Keycloak/session and owner-scoped read-only web shell
 - [#18](https://github.com/salimsaidhemed/calendar-sync/issues/18) Expose audit history and sync status UI
 - [#33](https://github.com/salimsaidhemed/calendar-sync/issues/33) Owner-scoped control store, encrypted vault and explicit legacy migration
 - [#34](https://github.com/salimsaidhemed/calendar-sync/issues/34) Single-engine scheduling and durable jobs/reports
@@ -58,3 +59,5 @@ Two-way operation extends the Python engine; no rewrite or Java token applicatio
 ## Definition of done
 
 Each change has a linked issue, feature branch, updated documentation and changelog, verification evidence, and an owner-approved PR. Only the owner merges. Epic completion requires all child issues to be verified; creating the scaffold does not complete the release.
+
+Local web acceptance tooling: [#43](https://github.com/salimsaidhemed/calendar-sync/issues/43) adds a [disposable localhost Keycloak stack](local-keycloak.md) to the #41 / PR #42 login increment. This does not complete parent #19 or enable calendar connection/configuration.

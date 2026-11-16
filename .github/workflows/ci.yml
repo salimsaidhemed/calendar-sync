@@ -20,7 +20,11 @@ jobs:
       - run: python -m unittest discover -s tests -v
       - run: calendar-sync
       - run: calendar-sync --version
-      - run: docker build --build-arg VCS_REF=${{ github.sha }} -t calendar-sync:test .
+      - name: Build image from restrictive public-file checkout
+        run: |
+          chmod 0600 pyproject.toml requirements.lock scripts/check_runtime_lock.py
+          trap 'chmod 0644 pyproject.toml requirements.lock scripts/check_runtime_lock.py' EXIT
+          docker build --build-arg VCS_REF=${{ github.sha }} -t calendar-sync:test .
       - run: docker run --rm --network none --read-only calendar-sync:test calendar-sync --version
       - run: docker run --rm --network none --read-only calendar-sync:test python scripts/check_runtime_lock.py
       - name: Check release image labels
@@ -34,9 +38,29 @@ jobs:
         run: docker run --rm --network none --read-only --tmpfs /tmp:rw,mode=1777 --mount "type=bind,src=$PWD/scripts,dst=/checks,readonly" calendar-sync:test python /checks/smoke_control.py
       - name: Offline operator CLI acceptance
         run: docker run --rm --network none --read-only --tmpfs /tmp:rw,mode=1777 --mount "type=bind,src=$PWD/scripts,dst=/checks,readonly" calendar-sync:test python /checks/smoke_control_cli.py
+      - name: Offline signed web login acceptance
+        run: docker run --rm --network none --read-only --tmpfs /tmp:rw,mode=1777 --mount "type=bind,src=$PWD/scripts,dst=/checks,readonly" calendar-sync:test python /checks/smoke_web.py
+      - name: Disposable web setup and unprivileged startup
+        run: |
+          fixture="calendar-web-ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          trap 'docker volume rm "$fixture-data" "$fixture-secrets"' EXIT
+          docker run --rm --network none --read-only --user 0:0 --cap-drop ALL --cap-add CHOWN --cap-add DAC_OVERRIDE --cap-add FOWNER --env-file .env.web.example --mount "type=volume,src=$fixture-data,dst=/data" --mount "type=volume,src=$fixture-secrets,dst=/run/web-secrets" --mount "type=bind,src=$PWD/scripts,dst=/checks,readonly" calendar-sync:test python /checks/smoke_web_deployment.py --initialize
+          docker run --rm --network none --read-only --cap-drop ALL --env-file .env.web.example --mount "type=volume,src=$fixture-data,dst=/data" --mount "type=volume,src=$fixture-secrets,dst=/run/web-secrets,readonly" --mount "type=bind,src=$PWD/scripts,dst=/checks,readonly" calendar-sync:test python /checks/smoke_web_deployment.py
       - name: Validate Compose configuration
         run: |
           cp .env.example .env
           docker compose config --quiet
+      - name: Real localhost Keycloak integration
+        run: |
+          export LOCAL_WEB_UAT_PROJECT="calendar-sync-keycloak-local-ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          export LOCAL_WEB_UAT_IMAGE=calendar-sync:test
+          export LOCAL_WEB_UAT_SKIP_BUILD=true
+          trap 'bash scripts/local_keycloak.sh reset --delete-local-test-volumes' EXIT
+          bash scripts/local_keycloak.sh up
+          bash scripts/local_keycloak.sh test
       - name: Validate isolated UAT template
         run: docker compose --env-file examples/uat/.env.example -f examples/uat/compose.yaml --profile setup config --quiet
+      - name: Validate isolated web setup and runtime template
+        run: |
+          cp .env.web.example .env.web
+          docker compose --env-file .env.web -f compose.web.yaml --profile setup config --quiet

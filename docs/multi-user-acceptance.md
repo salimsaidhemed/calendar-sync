@@ -1,6 +1,6 @@
 # Multi-user design review and future acceptance
 
-Issue #17 is a design-only delivery. Current runtime remains v0.1.0; do not try the proposed /api/v1 endpoints against a customer deployment. No live login, discovery, migration or two-way feature is implemented here. Required executable scenarios AUTHZ-01 through TWO-01 in [the design](multi-user-design.md#threat-to-test-requirements) become automated cases under their implementation issues; they are not falsely counted as current unit tests.
+Issue #17 was a design-only delivery. Current development includes #33 local persistence and the #41 login/read-only shell; use web-login.md for actual implemented routes/tests. Provider connection/discovery, calendar configuration, scheduler integration and two-way remain future work. Do not test development endpoints against the v0.1.0 customer deployment. Required executable scenarios AUTHZ-01 through TWO-01 in [the design](multi-user-design.md#threat-to-test-requirements) become automated cases under their implementation issues; they are not falsely counted as current unit tests.
 
 ## Regression commands
 
@@ -15,7 +15,7 @@ python -m pip check
 git diff --check
 ```
 
-For a fresh environment first run python3 -m venv .venv, activate it, then python -m pip install -r requirements.lock and python -m pip install --no-deps -e . as in [testing](testing.md). Expect 19 installed pins/version match, 216 tests exactly catalogued and passing, no broken requirements or whitespace errors. Existing tests use fakes/temporary state and clean up automatically. The original #17 PR added no tests mirroring prose. #33 now adds 28 meaningful control/vault/migration tests; they establish backend foundation behavior, not implemented GUI/OIDC authorization. See control-store.md for its current acceptance exercise.
+For a fresh environment first run python3 -m venv .venv, activate it, then python -m pip install -r requirements.lock and python -m pip install --no-deps -e . as in [testing](testing.md). Expect 35 installed pins/version match, 253 tests exactly catalogued and passing, no broken requirements or whitespace errors. Existing tests use fakes/temporary state and clean up automatically. The original #17 PR added no tests mirroring prose. #33 now adds 28 meaningful control/vault/migration tests; they establish backend foundation behavior. #41 adds 31 web/OIDC tests with an offline signed fixture; real Keycloak acceptance is separate under web-login.md. See control-store.md for its current acceptance exercise.
 
 ## Design review cases
 

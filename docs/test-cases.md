@@ -4,7 +4,7 @@ Every discovered unit test has a stable case ID below. IDs refer to tests, not a
 
 ## Shared procedure
 
-Use the environment setup in [testing.md](testing.md). All 216 tests use temporary/fake state; none needs real credentials or provider requests. Run `python -m unittest discover -s tests -v` for the complete suite. To execute a row, use `python -m unittest discover -s tests -k '<full test identifier from the row>' -v`; expect exactly one test with `OK`. Prerequisites and cleanup are shared: Python 3.12+, installed project dependencies, local filesystem on Linux/macOS; temporary files are cleaned automatically. Expected exception assertions count as passing tests, not user-visible failures.
+Use the environment setup in [testing.md](testing.md). All 253 tests use temporary/fake state; none needs real credentials or provider requests. Run `python -m unittest discover -s tests -v` for the complete suite. To execute a row, use `python -m unittest discover -s tests -k '<full test identifier from the row>' -v`; expect exactly one test with `OK`. Prerequisites and cleanup are shared: Python 3.12+, installed project dependencies, local filesystem on Linux/macOS; temporary files are cleaned automatically. Expected exception assertions count as passing tests, not user-visible failures.
 
 ## CFG: test_scaffold.py
 
@@ -326,7 +326,7 @@ Run `python -m unittest discover -s tests -p 'test_release.py' -v`; expect 4 pas
 
 | Case ID | Executable test identifier | Setup / input | Expected result |
 | --- | --- | --- | --- |
-| PKG-001 | `test_release.ReleaseTests.test_runtime_lock_matches_installed_release_and_all_direct_dependencies` | Real source metadata, runtime lock and installed packages | All 19 pins/direct dependencies and app version match. |
+| PKG-001 | `test_release.ReleaseTests.test_runtime_lock_matches_installed_release_and_all_direct_dependencies` | Real source metadata, runtime lock and installed packages | All 35 pins/direct dependencies and app version match. |
 | PKG-002 | `test_release.ReleaseTests.test_unpinned_duplicate_and_incomplete_locks_are_rejected` | Unpinned version, normalized duplicate name or missing required dependency | Fixed invalid/missing-dependency failure, no silent acceptance. |
 | PKG-003 | `test_release.ReleaseTests.test_wrong_installed_version_or_missing_package_emits_fixed_code_only` | Mock wrong requests version or missing package with sentinel error | Exit2/fixed code; no raw exception/private sentinel. |
 | PKG-004 | `test_release.ReleaseTests.test_documented_publication_stops_on_tag_push_or_remote_identity_failure` | Execute documented publication with fake Git/GitHub commands across seven scenarios | Existing tags, tag/push failures and wrong/unreadable remote SHA prevent publication; only verified success publishes. No actual tags/releases created. |
@@ -373,6 +373,51 @@ Run `python -m unittest discover -s tests -p 'test_control_migration.py' -v`; ex
 | CMIG-011 | `test_control_migration.ControlMigrationTests.test_restore_failure_after_copy_cleans_only_new_destination_and_keeps_bundle` | Injected verification failure after restore files copied | Only newly created failed destination cleaned; source bundle retained. |
 | CMIG-012 | `test_control_migration.ControlMigrationTests.test_old_backup_requires_old_key_after_rotation_and_restores_only_to_isolated_state` | Snapshot then rotate current vault key; restore old bundle with old/new keys | Old bundle requires original key and restores to new isolated state; rotated current store remains usable only with new key. |
 
+## WEB: test_web.py
+
+Run `python -m unittest discover -s tests -p 'test_web.py' -v`; expect 22 passes. Private temporary state and an offline RSA-signed Keycloak fixture only; real app routes and Authlib/joserfc validation, no live tenant or sockets. Automatic cleanup. See [web acceptance](web-login.md).
+
+| Case ID | Executable test identifier | Setup / input | Expected result |
+| --- | --- | --- | --- |
+| WEB-001 | `test_web.WebTests.test_public_page_has_security_headers_no_implicit_oauth_and_no_mutation_capabilities` | Anonymous home and API-documentation routes | Sign-in page/security headers only; no implicit OAuth or write capabilities. |
+| WEB-002 | `test_web.WebTests.test_prelogin_cookie_is_opaque_secure_host_only_and_does_not_authenticate` | GET login followed by protected request with prelogin cookie | Opaque 43-character Secure/HttpOnly/SameSite host-only cookie; prelogin never authenticates. |
+| WEB-003 | `test_web.WebTests.test_login_requires_same_origin_csrf_single_fields_and_bounded_body` | Missing/foreign Origin, wrong CSRF, duplicate fields and oversized body | 403/400/413 before code exchange; no identity network operation. |
+| WEB-004 | `test_web.WebTests.test_callback_rotates_session_registers_verified_owner_and_encrypts_tokens_at_rest` | Signed PKCE callback, repeat sign-in visit and encrypted session database inspection | Cookie rotates, exact issuer/subject owner created, API cookie renewed, no plaintext tokens or browser credential response. |
+| WEB-005 | `test_web.WebTests.test_state_mismatch_cross_browser_and_replay_do_not_exchange_codes` | Wrong state, foreign browser and reused old callback/cookie | No cross-browser exchange or replay; valid flow works once. |
+| WEB-006 | `test_web.WebTests.test_expired_and_duplicate_callback_parameters_are_rejected_before_network` | Repeated state query parameters and flow older than five minutes | 401 before identity requests; no ambiguous/expired flow acceptance. |
+| WEB-007 | `test_web.WebTests.test_cancelled_or_wrong_issuer_callback_consumes_flow_without_owner_creation` | Consent cancellation and wrong response issuer | Flow consumed, no credentials/owner saved, generic safe refusal. |
+| WEB-008 | `test_web.WebTests.test_required_client_role_is_checked_before_owner_provisioning` | Signed identity without required client role | 403 before owner provisioning; no realm/admin-role inference. |
+| WEB-009 | `test_web.WebTests.test_idle_and_absolute_expiry_cannot_be_extended_by_an_old_cookie` | Idle session over 30 minutes; shortened absolute deadline after login | Old cookies denied; absolute eight-hour cap is server-owned and not extended by activity. |
+| WEB-010 | `test_web.WebTests.test_revocation_and_identity_outage_fail_closed_without_raw_diagnostics` | Identity outage/recovery then revoked token | Unavailable issuer gives secret-free 503 with no protected data; recovery retries; revocation denies session. |
+| WEB-011 | `test_web.WebTests.test_concurrent_refresh_is_serialized_and_preserves_rotated_grant` | Two protected requests needing refresh concurrently | Exactly one refresh, latest rotated grant retained, both valid reads succeed. |
+| WEB-012 | `test_web.WebTests.test_refresh_subject_change_or_lost_role_invalidates_local_session` | Refresh changes subject/sid/nonce or removes sync-user role | Local session invalidated; no owner switch, nonce mismatch or stale role continuation. |
+| WEB-013 | `test_web.WebTests.test_local_disabled_owner_blocks_session_even_when_keycloak_is_active` | Control maintenance lock then disabled local owner with active Keycloak session | 503 during control unavailability; normal access recovers; disabled owner denied independently. |
+| WEB-014 | `test_web.WebTests.test_owner_scoped_records_and_foreign_ids_do_not_leak_credentials_or_other_users` | Bob-owned connection/pair while Alice requests lists/items and unknown IDs | Only Alice records shown; foreign and missing IDs both 404; no credentials/account disclosure. |
+| WEB-015 | `test_web.WebTests.test_logout_requires_csrf_invalidates_session_and_does_not_touch_control_history` | Foreign-origin logout then valid CSRF logout; compare control dump | Invalid logout has no effect; valid local logout removes session/cookie and leaves control history unchanged. |
+| WEB-016 | `test_web.WebTests.test_signed_backchannel_logout_revokes_only_matching_user_and_is_idempotent` | Unsigned/invalid backchannel request then signed Alice-only logout with Bob active | Invalid request cannot set browser cookie; signed logout is idempotent and revokes only matching session. |
+| WEB-017 | `test_web.WebTests.test_host_spoofing_and_forwarded_headers_cannot_change_redirects` | Spoofed Host and forwarded host headers | 400 for unapproved Host; redirects remain configured fixed endpoints. |
+| WEB-018 | `test_web.WebTests.test_dashboard_escapes_user_strings_and_unimplemented_mutations_are_unavailable` | Script-bearing display name and POST to unimplemented configuration route | HTML escaped; no executable script; calendar mutation unavailable (405). |
+| WEB-019 | `test_web.WebTests.test_sessions_survive_restart_but_second_web_process_cannot_open_store` | Reopen persistent web sessions and compete with another app process | Second process refused; after clean close restart preserves session but revalidates issuer. |
+| WEB-020 | `test_web.WebTests.test_modified_cookie_or_ciphertext_cannot_produce_an_authenticated_owner` | Changed opaque cookie then modified ciphertext | No owner can be produced; cookie denied before RPC; ciphertext failure sanitized, no token exposure. |
+| WEB-021 | `test_web.WebTests.test_web_setup_creates_private_files_without_overwrite_or_network` | Fresh key/client-secret bootstrap then repeated initialization | Files private and owned; no overwrite and no network. |
+| WEB-022 | `test_web.WebTests.test_unknown_session_schema_or_wrong_recovery_key_is_refused_without_reset` | Future session schema, wrong key, and an empty SQLite file tagged for another application | Startup fails closed without schema downgrade, application-ID overwrite or automatic session reset. |
+
+## OIDC: test_web_oidc.py
+
+Run `python -m unittest discover -s tests -p 'test_web_oidc.py' -v`; expect 9 passes. Private temporary state and an offline RSA-signed Keycloak fixture only; real app routes and Authlib/joserfc validation, no live tenant or sockets. Automatic cleanup. See [web acceptance](web-login.md).
+
+| Case ID | Executable test identifier | Setup / input | Expected result |
+| --- | --- | --- | --- |
+| OIDC-001 | `test_web_oidc.OIDCTests.test_signed_identity_enforces_issuer_audience_nonce_expiry_nbf_iat_and_authorized_party` | Valid RSA identity then wrong iss/aud/nonce/exp/nbf/iat/azp/sub/sid and NaN expiry | Only matching signed/current claims pass; invalid cases rejected. |
+| OIDC-002 | `test_web_oidc.OIDCTests.test_multiple_audiences_require_matching_azp_and_missing_essential_claims_fail` | Missing essential claims; multiple audiences with missing/matching azp | Essential fields required; multi-audience token needs matching authorized party. |
+| OIDC-003 | `test_web_oidc.OIDCTests.test_unknown_signing_key_is_refused_and_key_refresh_is_bounded` | Foreign signing key repeatedly, then elapsed refresh floor and valid issuer key rotation | Unknown signer denied; bounded JWKS refresh; new trusted signer accepted after refresh. |
+| OIDC-004 | `test_web_oidc.OIDCTests.test_signature_algorithm_and_embedded_key_urls_cannot_change_trusted_key_source` | Changed signature, HS256 token and JWT-provided key URLs | RS256 allowlist and fixed JWKS only; no arbitrary URL/key source. |
+| OIDC-005 | `test_web_oidc.OIDCTests.test_mixed_encryption_and_signing_jwks_accepts_only_rsa_signing_key` | Mixed RSA encryption/signing JWKS | Only approved signature keys used; normal Keycloak encryption entries do not break login. |
+| OIDC-006 | `test_web_oidc.OIDCTests.test_pkce_exchange_uses_fixed_endpoints_basic_client_auth_and_safe_transport` | Authorization URL/exchange/introspection transport; supplied wrong at_hash | S256/client authentication, fixed endpoints/TLS/timeouts/no redirects or env proxies; access-token hash mismatch refused. |
+| OIDC-007 | `test_web_oidc.OIDCTests.test_identity_outage_redirect_and_oversize_responses_fail_without_private_diagnostics` | Identity connection failure, redirect and oversized body | Bounded fixed secret-free failure, no raw transport diagnostics. |
+| OIDC-008 | `test_web_oidc.OIDCTests.test_logout_tokens_validate_event_audience_age_nonce_and_session_identity` | Signed logout token with valid/invalid events, nonce, jti, age and audience | Only current issuer/audience-authenticated logout event with session identity accepted. |
+| OIDC-009 | `test_web_oidc.OIDCTests.test_web_environment_requires_https_unique_absolute_paths_and_private_client_secret` | HTTPS/environment paths and broad client-secret permissions | Reject HTTP, userinfo/path-origin, duplicate/relative paths and nonprivate client secret. |
+
 ## Manual and environment cases
 
 Manual Google cases are in [google-acceptance.md](google-acceptance.md); Nextcloud cases in [nextcloud.md](nextcloud.md); planner cases in [planner.md](planner.md); EXEC-UAT-01–07 in [execution.md](execution.md); WORK-UAT-01–07 in [worker.md](worker.md); GOV-UAT-01–04 in [branch-protection.md](branch-protection.md). Four Google account/environment setup cases are in [google-setup.md](google-setup.md). Docker smoke and documentation review cases are in [testing.md](testing.md). Results belong in a dated [execution record](test-evidence.md), not as permanent PASS labels in this catalogue.
@@ -380,3 +425,16 @@ Manual Google cases are in [google-acceptance.md](google-acceptance.md); Nextclo
 ## Explicit coverage limits
 
 Fake OAuth tests do not establish that a real tenant permits consent, Google has verified an app, all account classes work, or production is ready. Fake pagination does not establish a point-in-time Google snapshot. Conditional writes/recovery are verified against fakes only. Windows/network filesystem behavior, real token expiry under each tenant, Nextcloud write interoperability, conflict resolution and production worker recovery have not been accepted here. Record unavailable live scenarios as Not run or Not applicable with a reason, never silently passed.
+
+## LOCAL: test_local_keycloak.py
+
+Source: [test_local_keycloak.py](../tests/test_local_keycloak.py). Run `python -m unittest discover -s tests -p 'test_local_keycloak.py' -v`; expect 6 passing tests. Temporary generated fixture only; no running containers or network required. Real-container acceptance is separately documented in [local-keycloak.md](local-keycloak.md).
+
+| Case ID | Executable test identifier | Setup / input | Expected result |
+| --- | --- | --- | --- |
+| LOCAL-001 | `test_local_keycloak.LocalKeycloakTests.test_realm_has_exact_confidential_pkce_audience_roles_and_random_credentials` | Generate fresh fixture; inspect client, roles, passwords, private files | Confidential code-only S256, exact callback/backchannel, ID-token role and access-token audience mappers; denied lacks role; distinct long random passwords; files 0600. |
+| LOCAL-002 | `test_local_keycloak.LocalKeycloakTests.test_tls_is_signed_for_localhost_and_ca_signing_key_is_not_persisted` | Generate CA and leaf | Leaf signature verifies, localhost SAN/serverAuth, CA constraints correct, public CA 0644; no persisted CA signing key. |
+| LOCAL-003 | `test_local_keycloak.LocalKeycloakTests.test_reinitialize_preserves_credentials_keys_and_seeded_state` | Initialize, seed and initialize again | No regeneration/overwrite; all immutable bytes retained. |
+| LOCAL-004 | `test_local_keycloak.LocalKeycloakTests.test_partial_and_tampered_fixtures_are_refused_without_overwrite` | Foreign partial directory; later modified session key | Both refused; foreign file and modified key retained for inspection. |
+| LOCAL-005 | `test_local_keycloak.LocalKeycloakTests.test_seed_is_idempotent_owner_scoped_paused_and_has_no_provider_credentials` | Seed twice | Exactly Alice/Bob owners, two connections each needing verification, two paused/dry-run/review pairs; synthetic file references only. |
+| LOCAL-006 | `test_local_keycloak.LocalKeycloakTests.test_test_driver_refuses_external_urls_and_parses_forms_without_scripts` | HTTP, external/lookalike host, userinfo and fragment URLs; escaped form fields | Unsafe URLs refused before credential submission; fixed HTTPS localhost allowed; form parsed as data. |
