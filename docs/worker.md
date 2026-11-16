@@ -92,7 +92,7 @@ docker run --rm --network none --read-only calendar-sync:worker-test
 docker run --rm --network none --read-only --tmpfs /tmp:rw,mode=1777 --mount "type=bind,src=$PWD/scripts,dst=/checks,readonly" calendar-sync:worker-test python /checks/smoke_worker.py
 ```
 
-Expected: 18 worker tests, 30 executor tests, 188 total tests and 188 exactly catalogued IDs pass. The fake integration script reports dry-run, one conditional create and unchanged after restart, with one mapping/resource total and working health. It uses no credential files or provider network, cleans temporary state automatically, and can run under container UID 10001. Docker build needs registry access; offline checks run with network disabled. CI repeats unit/catalogue, image build/offline integration and Compose configuration checks.
+Expected: 18 worker tests, 30 executor tests, 216 total tests and 216 exactly catalogued IDs pass. The fake integration script reports dry-run, one conditional create and unchanged after restart, with one mapping/resource total and working health. It uses no credential files or provider network, cleans temporary state automatically, and can run under container UID 10001. Docker build needs registry access; offline checks run with network disabled. CI repeats unit/catalogue, image build/offline integration and Compose configuration checks.
 
 ## User acceptance cases
 

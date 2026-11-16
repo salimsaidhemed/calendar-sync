@@ -1,5 +1,7 @@
 # v0.1.0 release freeze and publication
 
+Historical v0.1.0 procedure: run its commands only from the owner-approved v0.1.0 source/merge or published tag. Current development is 0.2.0.dev0; do not build it under a v0.1.0 image/tag or expect its larger test suite/version to match this baseline's 188-test record.
+
 Issue #14 owns this release. Source version 0.1.0 and its runtime pins are prepared through a feature PR; **the owner must approve/merge that version/changelog PR before tagging or publishing**. User authorization to freeze the release does not bypass the established owner-only merge policy. No tag/release is created by the preparation PR. Never force-move an existing release tag or overwrite a frozen baseline to add GUI features.
 
 ## Candidate verification — REL-UAT-01

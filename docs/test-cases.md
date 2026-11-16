@@ -4,7 +4,7 @@ Every discovered unit test has a stable case ID below. IDs refer to tests, not a
 
 ## Shared procedure
 
-Use the environment setup in [testing.md](testing.md). All 188 tests use temporary/fake state; none needs real credentials or provider requests. Run `python -m unittest discover -s tests -v` for the complete suite. To execute a row, use `python -m unittest discover -s tests -k '<full test identifier from the row>' -v`; expect exactly one test with `OK`. Prerequisites and cleanup are shared: Python 3.12+, installed project dependencies, local filesystem on Linux/macOS; temporary files are cleaned automatically. Expected exception assertions count as passing tests, not user-visible failures.
+Use the environment setup in [testing.md](testing.md). All 216 tests use temporary/fake state; none needs real credentials or provider requests. Run `python -m unittest discover -s tests -v` for the complete suite. To execute a row, use `python -m unittest discover -s tests -k '<full test identifier from the row>' -v`; expect exactly one test with `OK`. Prerequisites and cleanup are shared: Python 3.12+, installed project dependencies, local filesystem on Linux/macOS; temporary files are cleaned automatically. Expected exception assertions count as passing tests, not user-visible failures.
 
 ## CFG: test_scaffold.py
 
@@ -330,6 +330,48 @@ Run `python -m unittest discover -s tests -p 'test_release.py' -v`; expect 4 pas
 | PKG-002 | `test_release.ReleaseTests.test_unpinned_duplicate_and_incomplete_locks_are_rejected` | Unpinned version, normalized duplicate name or missing required dependency | Fixed invalid/missing-dependency failure, no silent acceptance. |
 | PKG-003 | `test_release.ReleaseTests.test_wrong_installed_version_or_missing_package_emits_fixed_code_only` | Mock wrong requests version or missing package with sentinel error | Exit2/fixed code; no raw exception/private sentinel. |
 | PKG-004 | `test_release.ReleaseTests.test_documented_publication_stops_on_tag_push_or_remote_identity_failure` | Execute documented publication with fake Git/GitHub commands across seven scenarios | Existing tags, tag/push failures and wrong/unreadable remote SHA prevent publication; only verified success publishes. No actual tags/releases created. |
+
+## CTRL: test_control.py
+
+Run `python -m unittest discover -s tests -p 'test_control.py' -v`; expect 16 passes. Private temporary directories, synthetic credentials and fake engine state only; no providers. The race case uses two local spawned processes. Automatic cleanup. See [control acceptance](control-store.md).
+
+| Case ID | Executable test identifier | Setup / input | Expected result |
+| --- | --- | --- | --- |
+| CTRL-001 | `test_control.ControlTests.test_identity_is_exact_issuer_subject_and_provisioning_is_idempotent` | Same issuer/subject, same subject in another issuer, unknown owner and invalid context | Idempotent owner UUID, distinct cross-issuer owner, unknown/invalid owner denied. |
+| CTRL-002 | `test_control.ControlTests.test_credentials_are_encrypted_redacted_and_bound_to_connection_owner_provider_revision` | Synthetic secrets; tamper owner/provider/revision or copy ciphertext to another connection | Correct owner resolves original bytes; projections/DB omit plaintext; authenticated metadata swaps fail. |
+| CTRL-003 | `test_control.ControlTests.test_all_owner_scoped_operations_deny_foreign_connections_pairs_audit_and_secrets` | Bob guesses Alice connection/pair IDs and attempts resolve/replace/disconnect/create/archive/list | Generic foreign/unknown denial, no leaked connections or audit; association checks enforce owner. |
+| CTRL-004 | `test_control.ControlTests.test_credential_refresh_compare_and_swap_rejects_stale_revision_and_invalid_payload` | Fresh/stale credential revision, boolean/zero revision, empty/oversize secret | Only current valid refresh commits; stale/invalid input preserves newest payload. |
+| CTRL-005 | `test_control.ControlTests.test_disconnect_and_disabled_owner_block_credential_use_and_new_pairs` | Disconnect connection, then disable owner | Resolution/replacement/pair creation denied; disabled owner cannot read repositories. |
+| CTRL-006 | `test_control.ControlTests.test_pair_defaults_archive_and_global_reservations_preserve_history` | Paused pair, archive revision and cross-owner aliases of reserved endpoints | Dry-run/one-way defaults; stale archive refused; archived reservations retained and colliding transaction rolls back. |
+| CTRL-007 | `test_control.ControlTests.test_concurrent_normal_processes_reserve_both_endpoints_atomically` | Two spawned processes race for same canonical calendar pair | One success/one generic collision; exactly one pair and both reservations, no orphan partial reservation. |
+| CTRL-008 | `test_control.ControlTests.test_unknown_schema_and_schema_drift_refuse_without_mutating_database` | Newer schema version then unexpected table | Open refused with fixed code; database bytes unchanged. |
+| CTRL-009 | `test_control.ControlTests.test_key_files_are_private_exact_length_never_overwritten_and_separate` | Existing key, co-located key/DB, 0/31/33-byte keys and broad file permissions | Key never overwritten; malformed, co-located or nonprivate key refused. |
+| CTRL-010 | `test_control.ControlTests.test_symlinks_hardlinks_fifo_and_broad_directories_are_rejected` | Symlink, hardlink, FIFO and publicly accessible key directory | Unsafe files/paths refused without blocking or opening secret contents. |
+| CTRL-011 | `test_control.ControlTests.test_wrong_or_missing_key_and_modified_ciphertext_fail_closed` | Tampered ciphertext, independent wrong key, missing key | No credential resolution/store open with invalid material; fixed safe failures. |
+| CTRL-012 | `test_control.ControlTests.test_maintenance_excludes_all_other_handles_and_normal_handles_coexist` | Two normal handles, then maintenance vs normal/maintenance contention | Normal handles coexist; maintenance excludes all other cooperating handles. |
+| CTRL-013 | `test_control.ControlTests.test_key_rotation_preserves_payloads_requires_maintenance_and_changes_recovery_key` | Normal-handle rotation attempt then exclusive rotation to distinct key | Maintenance required; payloads preserved; only new key opens rotated store. |
+| CTRL-014 | `test_control.ControlTests.test_failed_key_rotation_rolls_back_every_ciphertext_and_audit_entry` | Injected failure after first credential re-encryption | All ciphertext, key check and audit roll back; original vault remains usable. |
+| CTRL-015 | `test_control.ControlTests.test_audit_is_owner_scoped_bounded_append_only_and_redacted` | Bounded owner audit pages, invalid limits, SQL update/delete attempts | Complete bounded paging, no payloads, append-only audit enforcement. |
+| CTRL-016 | `test_control.ControlTests.test_operator_cli_prints_fixed_diagnostics_without_path_or_credential_contents` | Operator CLI with sentinel-bearing missing key path | Exit 2/fixed diagnostic only; path/private sentinel not printed. |
+
+## CMIG: test_control_migration.py
+
+Run `python -m unittest discover -s tests -p 'test_control_migration.py' -v`; expect 12 passes. Private temporary directories, synthetic credentials and fake engine state only; no providers. Automatic cleanup. See [control acceptance](control-store.md).
+
+| Case ID | Executable test identifier | Setup / input | Expected result |
+| --- | --- | --- | --- |
+| CMIG-001 | `test_control_migration.ControlMigrationTests.test_import_preview_rolls_back_and_apply_preserves_engine_bytes_mappings_intents_and_markers` | Engine fixture with mapping and pending intent; preview then explicit apply | Preview leaves control records unchanged; engine bytes/IDs/markers/mappings/intents unchanged; unassigned quarantined and legacy secrets unresolved. |
+| CMIG-002 | `test_control_migration.ControlMigrationTests.test_import_retry_is_idempotent_and_quarantine_assignment_is_explicit` | Repeat identical import, attempt reuse of quarantined endpoint, then explicitly assign config | Retry is idempotent; quarantine blocks collisions; explicit assignment transfers reservations to Bob's new paused pair. |
+| CMIG-003 | `test_control_migration.ControlMigrationTests.test_unknown_disabled_or_reassigned_owner_and_unknown_configuration_are_refused_atomically` | Unknown config/owner, disabled owner and reassignment/missing previous assignment | Whole import refused; existing owner assignment and control dump unchanged. |
+| CMIG-004 | `test_control_migration.ControlMigrationTests.test_failed_partial_import_rolls_back_connections_pairs_reservations_and_audit` | Injected second-pair failure during two-config import | All connections/pairs/reservations/audit rolled back atomically. |
+| CMIG-005 | `test_control_migration.ControlMigrationTests.test_active_engine_and_nonmaintenance_control_store_refuse_import_or_snapshot` | Nonmaintenance control handle and active StateStore engine lock | Import/snapshot refuse; neither lock is bypassed. |
+| CMIG-006 | `test_control_migration.ControlMigrationTests.test_engine_changes_or_wrong_legacy_owner_block_reimport_and_bundle` | Change engine after import, then use non-operator legacy owner | Reimport/snapshot divergence refused; unreviewed legacy ownership rejected. |
+| CMIG-007 | `test_control_migration.ControlMigrationTests.test_bundle_roundtrip_recovers_both_databases_and_credentials_without_key_copy` | Two-store bundle with encrypted synthetic credentials and engine mapping | Isolated restore matches both logical dumps and resolves credential with recovered key; no key bundled. |
+| CMIG-008 | `test_control_migration.ControlMigrationTests.test_bundle_tamper_wrong_key_existing_destination_and_failure_leave_no_partial_restore` | Existing backup/restore destinations, wrong key, changed engine snapshot bytes | No overwrite; wrong key/hash tamper rejected; no partial failed destination; existing data retained. |
+| CMIG-009 | `test_control_migration.ControlMigrationTests.test_unsupported_engine_schema_sidecars_and_missing_database_are_not_mutated` | Engine WAL/SHM/journal markers, future schema and missing database | Refuse unsafe/unsupported/missing engine; no schema mutation or missing-file auto-creation. |
+| CMIG-010 | `test_control_migration.ControlMigrationTests.test_duplicate_manifest_keys_and_cli_preview_apply_are_explicit_and_secret_free` | Duplicate JSON assignment keys and real CLI default-preview/--apply | Duplicate keys rejected; preview/apply explicit; outputs only safe aggregate counts. |
+| CMIG-011 | `test_control_migration.ControlMigrationTests.test_restore_failure_after_copy_cleans_only_new_destination_and_keeps_bundle` | Injected verification failure after restore files copied | Only newly created failed destination cleaned; source bundle retained. |
+| CMIG-012 | `test_control_migration.ControlMigrationTests.test_old_backup_requires_old_key_after_rotation_and_restores_only_to_isolated_state` | Snapshot then rotate current vault key; restore old bundle with old/new keys | Old bundle requires original key and restores to new isolated state; rotated current store remains usable only with new key. |
 
 ## Manual and environment cases
 
